@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DynaStay</title>
+</head>
+<body>
+    <h3>Create a New Listing</h3>
+    <form method="post" action="/listings">
+        <div>
+            <input placeholder="Type yout title" name="listing[title]" type="text">
+            <br><br>
+            <textarea placeholder="Type your description" name="listing[description]"></textarea>
+            <br><br>
+            <input placeholder="Enter image URL" name="listing[image]" type="text">
+            <br><br>
+            <input placeholder="Enter Price" name="listing[price]" type="number">
+            <br><br>
+            <input placeholder="Enter Location" name="listing[location]" type="text">
+            <br><br>
+            <input placeholder="Enter Country" name="listing[country]" type="text">
+            <br><br>
+        </div>
+        <button>Submit</button>
+    </form>
+</body>
+</html>

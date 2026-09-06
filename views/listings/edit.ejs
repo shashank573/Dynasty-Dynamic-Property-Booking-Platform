@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DynaStay</title>
+</head>
+<body>
+    <H2>EDIT YOUR LISTING</H2>
+    
+    <form method="post" action="/listings/<%=listing._id%>?_method=PUT">
+        <div>
+            <input value="<%= listing.title%>" name="listing[title]" type="text">
+            <br><br>
+            <textarea name="listing[description]"><%= listing.description%></textarea>
+            <br><br>
+            <input value="<%= listing.image%>" name="listing[image]" type="text">
+            <br><br>
+            <input value="<%= listing.price%>" name="listing[price]" type="number">
+            <br><br>
+            <input value="<%= listing.location%>" name="listing[location]" type="text">
+            <br><br>
+            <input value="<%= listing.country%>" name="listing[country]" type="text">
+            <br><br>
+        </div>
+        <button>Submit</button>
+    </form>
+</body>
+</html>
