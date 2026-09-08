@@ -4,12 +4,16 @@ const path = require("path");
 const mongoose = require("mongoose");
 const methodOverride = require("method-override");
 const Listing = require("./models/listing.js");
+const ejsMate = require("ejs-mate");
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
 app.use(express.urlencoded({extended: true}));
 app.use(methodOverride("_method"));
+app.use(express.static(path.join(__dirname, "/public")));
+
+app.engine("ejs", ejsMate);
 
 const MONGO_URL = "mongodb://127.0.0.1:27017/DynaStay";
 
@@ -49,7 +53,7 @@ app.get("/", (req, res) => {
 //INDEX ROUTE
 app.get("/listings", async (req, res) => {
     const allListings = await Listing.find();
-    console.log(allListings);
+    // console.log(allListings);
     res.render("listings/index.ejs", {allListings});
 });
 
