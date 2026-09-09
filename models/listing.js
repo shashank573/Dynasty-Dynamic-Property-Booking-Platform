@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Schema =  mongoose.Schema;
+const DEFAULT_IMAGE = "http://images.unsplash.com/photo-1552733407-5d5c46c3bb3b?auto=format&fit=crop&w=800&q=60";
 
 
 const listingSchema = new Schema({
@@ -10,10 +11,8 @@ const listingSchema = new Schema({
     description: String,
     image: {
         type : String,
-        // default is for if the image option is not given or image doent exist 
-        default: "https://unsplash.com/photos/rock-formations-on-mountain-ridge-sdbq2ozPojI",
-        // set is for if the image is not uploaded by the user 
-        set:(v)=>  v === ""? "https://unsplash.com/photos/rock-formations-on-mountain-ridge-sdbq2ozPojI" : v,
+        default: DEFAULT_IMAGE,
+        set: (v) => typeof v === "string" && v.trim() === "" ? DEFAULT_IMAGE : v,
     },
     price: Number,
     location: String,

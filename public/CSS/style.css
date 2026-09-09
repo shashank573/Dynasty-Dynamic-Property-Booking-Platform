@@ -1,6 +1,15 @@
-/* body{
-    background-color: pink;
-} */
+body{
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.container{
+    flex: 1;
+}
+
+/* NAVBAR */
 
 .navbar{
     height: 5rem;
@@ -15,4 +24,98 @@
 .nav-link{
     color: #222222 !important;
     /* to override our custome styling we use !important */
+}
+
+
+/* FOOTER */
+
+.f-info-links a{
+    text-decoration: none;
+    color: #222222;
+}
+
+.f-info-links a:hover{
+    text-decoration: underline;
+}
+
+.f-info-links, 
+.f-info-socials, 
+.f-info-brand{
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.f-info-socials i{
+    margin-right: 1rem;
+    font-size: 1.2rem;
+}
+
+.f-info {
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: space-evenly;
+    flex-wrap: wrap;
+    height: 8rem;
+    background-color: #ebebeb;
+}
+
+/* CARDS */
+
+.card{
+    border: none !important;
+    margin-bottom: 2rem;
+}
+
+.card-img-top{
+    border-radius: 1rem !important;
+    width: 100% !important;
+    object-fit: cover !important; 
+}
+
+.card-body{
+    padding: 0 !important;
+}
+
+.card-text{
+    font-weight: 400 !important;
+}
+
+.card-anchor{
+    text-decoration: none !important;
+}
+
+/* Card Effect */
+.card-img-overlay{
+    opacity: 0;
+}
+
+.card-img-overlay:hover{
+    opacity: 0.35;
+    background-color: white;
+}
+
+
+/* NEW LISTING */
+.add-btn,
+.edit-btn{
+    background-color: #fe424d !important;
+    border: none !important;
+}
+
+
+/* SHOW PAGE */
+.show-img{
+    height: 30vh;
+}
+
+.btns{
+    display: flex;
+}
+
+.show-card{
+    padding-left: 0;
+    padding-right: 0;
 }
