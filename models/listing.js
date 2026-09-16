@@ -1,25 +1,29 @@
 const mongoose = require("mongoose");
-const Schema =  mongoose.Schema;
-const DEFAULT_IMAGE = "http://images.unsplash.com/photo-1552733407-5d5c46c3bb3b?auto=format&fit=crop&w=800&q=60";
-
+const Schema = mongoose.Schema;
 
 const listingSchema = new Schema({
     title: {
-        type : String,
-        required : true
+        type: String,
+        required: true
     },
+
     description: String,
+
     image: {
-        type : String,
-        default: DEFAULT_IMAGE,
-        set: (v) => typeof v === "string" && v.trim() === "" ? DEFAULT_IMAGE : v,
+        type: String,
+        default: "https://images.unsplash.com/photo-1552733407-5d5c46c3bb3b?auto=format&fit=crop&w=800&q=60",
+        set: (v) =>
+            v === ""
+                ? "https://images.unsplash.com/photo-1552733407-5d5c46c3bb3b?auto=format&fit=crop&w=800&q=60"
+                : v
     },
+
     price: Number,
     location: String,
-    country: String,
+    country: String
 });
 
-const Listing = mongoose.model("Listing",listingSchema);
+const Listing = mongoose.model("Listing", listingSchema);
 
-//exporting into app.js
+// Exporting into app.js
 module.exports = Listing;
