@@ -22,6 +22,11 @@ const listingSchema = new Schema({
     price: Number,
     location: String,
     country: String,
+    owner: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        required: true
+    },
     reviews: [
         {
             type: Schema.Types.ObjectId,

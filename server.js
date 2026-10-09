@@ -1,3 +1,5 @@
+require("dotenv").config(); // to add the session secreat automatically
+
 const mongoose = require("mongoose");
 const app = require("./app");
 

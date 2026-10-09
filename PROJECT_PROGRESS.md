@@ -28,34 +28,77 @@
 
 ## Current Progress
 
-* Synopsis reviewed.
-* Existing project has a Node.js/Express/MongoDB foundation and EJS-based views.
-* React migration is required.
-* Latest uploaded ZIP is authoritative; preserve its Express Router refactoring.
-* No implementation task has yet been verified as completed in the current implementation workflow.
+* Project synopsis reviewed and scope established.
+* Existing backend uses Node.js, Express 5, MongoDB/Mongoose, EJS, Joi and Express Router.
+* Existing listing and review functionality has been preserved.
+* Express application configuration is separated from server startup: `app.js` exports the app, while `server.js` handles MongoDB connection and server startup.
+* Test script is configured to run Node.js's built-in test runner.
+* `supertest` is installed for HTTP-level tests.
+* `mongodb-memory-server` is installed as a development dependency for isolated database tests.
+* `tests/db-setup.js` manages temporary MongoDB startup, cleanup and shutdown.
+* `tests/app.test.js` covers basic app responses and invalid listing input.
+* `tests/listing.test.js` covers Listing model Create, Read, Update and Delete operations.
+* `tests/routes.test.js` covers Listing and Review route integration, validation and associated-review cleanup.
+* Review timestamp default was changed to `Date.now`.
+* Listing update route now uses Mongoose `runValidators: true`.
+* Latest verified test run: 19 passed, 0 failed, 0 skipped.
+* Latest verified `npm audit`: 0 vulnerabilities.
+* Latest observed Git state: branch `main`, three local commits ahead of `origin/main`; `PROJECT_PROGRESS.md` remains modified and unstaged.
+* React frontend and JWT-based authentication are not confirmed as implemented.
+* Booking, independently bookable units, parking reservations, concurrency protection, complaints, verification, Trust Score and trial payment workflows are not confirmed as implemented.
+* The seed script contains a deletion operation for existing listings. Do not run it against a database containing data that must be preserved.
 
 ## Current Phase
 
-Day 1 — Task 1: Audit the latest repository structure and dependencies.
+Day 1 — Testing foundation and route integration testing completed locally.
+
+## Completed Tasks
+
+### Task 1 — Repository Audit
+
+* Reviewed the project scope and existing repository structure.
+* Identified existing Listing and Review models, routes, validation and error handling.
+* Confirmed the need to preserve Express Router refactoring.
+* Identified the destructive seed-script risk.
+* Status: Completed.
+
+### Task 2 — Safe Startup and Testing Foundation
+
+* Separated app configuration from server startup.
+* Added automated app tests.
+* Configured the Node.js test runner and test dependencies.
+* Added temporary MongoDB test setup and Listing model CRUD tests.
+* Test result at last run: 8 tests passed before route integration tests were added.
+* Status: Completed and committed.
+
+### Task 3 — Listing and Review Integration Tests
+
+* Added tests for Listing index, create, show, update and delete routes.
+* Added tests for invalid listing input and invalid review rating.
+* Verified review creation and deletion update the Listing relationship.
+* Verified deleting a Listing also removes associated Review records.
+* Updated Review timestamp default and enabled Mongoose update validators.
+* Latest test result: 19 passed, 0 failed.
+* Latest security audit: 0 vulnerabilities.
+* Latest related commit: `dfff3e2` — `test: add listing and review route integration tests`.
+* Status: Committed and locally verified.
+
+## Git Notes
+
+* Three local commits are ahead of `origin/main` according to the latest observed status.
+* `PROJECT_PROGRESS.md` has existing local modifications and must not be accidentally discarded.
+* Review staged files before each commit.
+* Do not use `git add .` without first checking which files should be committed.
+* Do not push until explicitly decided.
 
 ## Next Action
 
-Inspect the latest ZIP/repository, including package.json, app.js, routes, models, middleware, views, public assets, and configuration.
-Identify what already works, what is missing, and the smallest safe implementation plan.
-Do not start code changes until the audit is complete.
-
-## Task Log
-
-For each task record:
-
-* Task:
-* Files changed:
-* Commands run:
-* Test results:
-* Bugs or blockers:
-* Git commit:
-* Status: Not started / In progress / Verified
+1. Save this progress update without discarding existing notes.
+2. Verify the file and Git status.
+3. Begin the authentication and authorization implementation plan after checking the actual current files and dependencies.
+4. Implement and test signup/login, password hashing, JWT handling and role-based route protection in small steps.
+5. Continue preserving existing EJS and Express Router functionality while aligning the implementation with the project synopsis.
 
 ## Session Handoff
 
-At the end of each work session, update this file with the exact next action, unresolved issues, and any changed assumptions. Distinguish verified facts from untested assumptions.
+Continue from the verified testing foundation. The latest test run passed 19 tests, and the latest security audit reported zero vulnerabilities. Preserve the Express Router refactoring and existing `PROJECT_PROGRESS.md` work. Do not run the destructive seed script on valuable data. React, authentication, booking concurrency and other planned features must not be marked complete until implemented and tested.

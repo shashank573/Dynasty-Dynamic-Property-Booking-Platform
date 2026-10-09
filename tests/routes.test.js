@@ -6,12 +6,16 @@ const request = require("supertest");
 const app = require("../app");
 const Listing = require("../models/listing");
 const Review = require("../models/reviews");
+const User = require("../models/user");
 
 const {
     connectToTestDB,
     clearTestDB,
     closeTestDB
 } = require("./db-setup");
+
+const agent = request.agent(app);
+let testUser;
 
 const validListing = {
     "listing[title]": "Integration Test Stay",
@@ -25,17 +29,35 @@ test("Listing and Review route integration tests", async (t) => {
     await connectToTestDB();
 
     try {
+
+        await clearTestDB();
+
+        testUser = await User.create({
+            name: "Integration Test User",
+            email: "integration.test@example.com",
+            password: "TestPassword123"
+        });
+
+        const loginResponse = await agent
+            .post("/login")
+            .type("form")
+            .send({
+                email: "integration.test@example.com",
+                password: "TestPassword123"
+            });
+
+        assert.equal(loginResponse.status, 302);
+
         await t.test("GET /listings returns the listings page", async () => {
-            const response = await request(app).get("/listings");
+            const response = await agent.get("/listings");
 
             assert.equal(response.status, 200);
             assert.match(response.text, /listings/i);
         });
 
         await t.test("POST /listings creates a listing", async () => {
-            await clearTestDB();
 
-            const response = await request(app)
+            const response = await agent
                 .post("/listings")
                 .type("form")
                 .send(validListing);
@@ -56,7 +78,7 @@ test("Listing and Review route integration tests", async (t) => {
                 title: "Integration Test Stay"
             });
 
-            const response = await request(app)
+            const response = await agent
                 .get(`/listings/${listing._id}`);
 
             assert.equal(response.status, 200);
@@ -68,7 +90,7 @@ test("Listing and Review route integration tests", async (t) => {
                 title: "Integration Test Stay"
             });
 
-            const response = await request(app)
+            const response = await agent
                 .put(`/listings/${listing._id}`)
                 .type("form")
                 .send({
@@ -88,7 +110,7 @@ test("Listing and Review route integration tests", async (t) => {
         });
 
         await t.test("POST /listings rejects invalid data", async () => {
-            const response = await request(app)
+            const response = await agent
                 .post("/listings")
                 .type("form")
                 .send({
@@ -107,7 +129,7 @@ test("Listing and Review route integration tests", async (t) => {
                 title: "Updated Integration Stay"
             });
 
-            const response = await request(app)
+            const response = await agent
                 .post(`/listings/${listing._id}/reviews`)
                 .type("form")
                 .send({
@@ -144,7 +166,7 @@ test("Listing and Review route integration tests", async (t) => {
                 comment: "Excellent stay"
             });
 
-            const response = await request(app)
+            const response = await agent
                 .delete(`/listings/${listing._id}/reviews/${review._id}`);
 
             assert.equal(response.status, 302);
@@ -170,7 +192,7 @@ test("Listing and Review route integration tests", async (t) => {
                 title: "Updated Integration Stay"
             });
 
-            const response = await request(app)
+            const response = await agent
                 .delete(`/listings/${listing._id}`);
 
             assert.equal(response.status, 302);
@@ -189,10 +211,11 @@ test("Listing and Review route integration tests", async (t) => {
                 description: "Testing review validation",
                 price: 1000,
                 country: "India",
-                location: "Dehradun"
+                location: "Dehradun",
+                owner: testUser._id
             });
 
-            const response = await request(app)
+            const response = await agent
                 .post(`/listings/${listing._id}/reviews`)
                 .type("form")
                 .send({
@@ -211,7 +234,8 @@ test("Listing and Review route integration tests", async (t) => {
                 description: "Testing review cleanup",
                 price: 900,
                 country: "India",
-                location: "Dehradun"
+                location: "Dehradun",
+                owner: testUser._id
             });
 
             const review = await Review.create({

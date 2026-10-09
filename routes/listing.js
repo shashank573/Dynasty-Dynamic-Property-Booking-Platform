@@ -4,6 +4,7 @@ const wrapAsync = require("../utils/wrapAsync.js");
 const ExpressError = require("../utils/ExpressError.js");
 const { listingSchema } = require("../schema.js");
 const Listing = require("../models/listing.js");
+const { isLoggedIn, isOwner } = require("../middleware/auth.js");
 
 
 // MIDDLEWARE : VALIDATE FOR SCHEMA
@@ -28,12 +29,12 @@ router.get("/", wrapAsync(async (req, res) => {
 
 //GET & CREATE ROUTE
     // NEW GET 
-router.get("/new", (req, res) => {
+router.get("/new", isLoggedIn, (req, res) => {
     res.render("listings/newListing.ejs");
 });
 
     // CREATE - POST
-router.post("/", validateListing, wrapAsync(async (req, res, next) => {
+router.post("/", isLoggedIn, validateListing, wrapAsync(async (req, res, next) => {
     // let {title, description, image, price, location, country} = req.body;
    
     // let newListing = new Listing({
@@ -54,6 +55,8 @@ router.post("/", validateListing, wrapAsync(async (req, res, next) => {
 
     const newListing = new Listing(req.body.listing);
     
+    newListing.owner = req.session.userId;
+
     await newListing.save();
     res.redirect("/listings");
 }));
@@ -70,14 +73,14 @@ router.get("/:id", wrapAsync(async (req, res) => {
 
 // EDIT AND UPDATE ROUTE 
     // GET
-router.get("/:id/edit", wrapAsync(async (req, res) => {
+router.get("/:id/edit", isLoggedIn, isOwner, wrapAsync(async (req, res) => {
     let {id} = req.params;
     let listing = await Listing.findById(id);
     res.render("listings/edit.ejs", {listing});
 }));
 
     // PUT
-router.put("/:id", validateListing, wrapAsync(async (req, res) => {
+router.put("/:id", isLoggedIn, isOwner, validateListing, wrapAsync(async (req, res) => {
     let {id} = req.params;
 
     await Listing.findByIdAndUpdate(
@@ -92,7 +95,7 @@ router.put("/:id", validateListing, wrapAsync(async (req, res) => {
 
 
 // DELETE ROUTE
-router.delete("/:id", wrapAsync(async (req, res) => {
+router.delete("/:id", isLoggedIn, isOwner, wrapAsync(async (req, res) => {
     let {id} = req.params;
     await Listing.findByIdAndDelete(id); // this will call the post middleware in listingSchema.js and deletes all the reviews associated with this listing
 

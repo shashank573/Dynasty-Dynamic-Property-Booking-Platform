@@ -2,6 +2,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
+const User = require("../models/user");
 const Listing = require("../models/listing");
 
 const {
@@ -13,6 +14,14 @@ const {
 test("Listing model CRUD operations", async (t) => {
     await connectToTestDB();
 
+    let testUser;
+
+    testUser = await User.create({
+        name: "Test User",
+        email: "listing.test@example.com",
+        password: "TestPassword123"
+    });
+
     try {
         await t.test("creates a listing", async () => {
             const listing = await Listing.create({
@@ -20,7 +29,8 @@ test("Listing model CRUD operations", async (t) => {
                 description: "A temporary listing for automated tests",
                 price: 1200,
                 location: "Dehradun",
-                country: "India"
+                country: "India",
+                owner: testUser._id
             });
 
             assert.ok(listing._id);
@@ -36,7 +46,8 @@ test("Listing model CRUD operations", async (t) => {
                 description: "Testing database read",
                 price: 1500,
                 location: "Dehradun",
-                country: "India"
+                country: "India",
+                owner: testUser._id
             });
 
             const found = await Listing.findById(created._id);
@@ -53,7 +64,8 @@ test("Listing model CRUD operations", async (t) => {
                 description: "Testing database update",
                 price: 1000,
                 location: "Dehradun",
-                country: "India"
+                country: "India",
+                owner: testUser._id
             });
 
             const updated = await Listing.findByIdAndUpdate(
@@ -74,7 +86,8 @@ test("Listing model CRUD operations", async (t) => {
                 description: "Testing database delete",
                 price: 900,
                 location: "Dehradun",
-                country: "India"
+                country: "India",
+                owner: testUser._id
             });
 
             const deleted = await Listing.findByIdAndDelete(created._id);
