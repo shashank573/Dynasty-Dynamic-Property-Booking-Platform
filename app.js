@@ -1,7 +1,6 @@
 const express = require("express");
 const app = express();
 const path = require("path");
-const mongoose = require("mongoose");
 const methodOverride = require("method-override");
 const ejsMate = require("ejs-mate");
 const ExpressError = require("./utils/ExpressError.js");
@@ -20,16 +19,6 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.engine("ejs", ejsMate);
 
-const MONGO_URL = "mongodb://127.0.0.1:27017/DynaStay";
-
-Main()
-.then(()=>{
-    console.log("Connections Successful!");
-}).catch((err) => console.log(err));
-
-async function Main() {
-    await mongoose.connect(MONGO_URL);
-}
 
 // ROOT ROUTE
 app.get("/", (req, res) => {
@@ -77,7 +66,4 @@ app.use((err, req, res, next) => {
     // next(err);
 });
 
-
-app.listen(8080, () => {
-    console.log("Server is listening to port 8080");
-});
+module.exports = app;
