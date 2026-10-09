@@ -78,12 +78,15 @@ router.get("/:id/edit", wrapAsync(async (req, res) => {
 
     // PUT
 router.put("/:id", validateListing, wrapAsync(async (req, res) => {
-    // if(!req.body.listing){
-    //     throw new ExpressError(400, "Send some valid data for listing");
-    // }
     let {id} = req.params;
-    await Listing.findByIdAndUpdate(id, {...req.body.listing});
-    res.redirect(`/listings/${id}`); // redirect to show route
+
+    await Listing.findByIdAndUpdate(
+        id,
+        {...req.body.listing},
+        {runValidators: true}
+    );
+
+    res.redirect(`/listings/${id}`);
 }));
 
 
