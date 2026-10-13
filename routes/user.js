@@ -101,9 +101,22 @@ const { name, email, password } = req.body;
 
     await user.save();
 
-    req.session.userId = user._id.toString();
+    req.session.regenerate((err) => {
+        if (err) {
+            return next(err);
+        }
 
-    return res.redirect("/listings");
+        req.session.userId = user._id.toString();
+
+        req.session.save((err) => {
+            if (err) {
+                return next(err);
+            }
+
+            return res.redirect("/listings");
+        });
+    });
+
 } catch (err) {
     if (err.code === 11000) {
         return res.status(409).send(

@@ -4,8 +4,7 @@ const wrapAsync = require("../utils/wrapAsync.js");
 const ExpressError = require("../utils/ExpressError.js");
 const { listingSchema } = require("../schema.js");
 const Listing = require("../models/listing.js");
-const { isLoggedIn, isOwner } = require("../middleware/auth.js");
-
+const { isLoggedIn, isOwner, isHostOrAdmin } = require("../middleware/auth.js");
 
 // MIDDLEWARE : VALIDATE FOR SCHEMA
 const validateListing = (req, res, next) => {
@@ -29,12 +28,12 @@ router.get("/", wrapAsync(async (req, res) => {
 
 //GET & CREATE ROUTE
     // NEW GET 
-router.get("/new", isLoggedIn, (req, res) => {
+router.get("/new", isLoggedIn, isHostOrAdmin, (req, res) => {
     res.render("listings/newListing.ejs");
 });
 
     // CREATE - POST
-router.post("/", isLoggedIn, validateListing, wrapAsync(async (req, res, next) => {
+router.post("/", isLoggedIn, isHostOrAdmin, validateListing, wrapAsync(async (req, res, next) => {
     // let {title, description, image, price, location, country} = req.body;
    
     // let newListing = new Listing({

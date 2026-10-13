@@ -36,7 +36,7 @@ role: {
 userSchema.pre("save", async function () {
 if (!this.isModified("password")) return;
 
-this.password = await bcrypt.hash(this.password, 12);
+this.password = await bcrypt.hash(this.password, 12);//bycrpt -> 12 is cost factor of it
 });
 
 userSchema.methods.comparePassword = async function (candidatePassword) {

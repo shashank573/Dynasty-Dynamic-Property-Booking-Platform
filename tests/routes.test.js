@@ -35,7 +35,8 @@ test("Listing and Review route integration tests", async (t) => {
         testUser = await User.create({
             name: "Integration Test User",
             email: "integration.test@example.com",
-            password: "TestPassword123"
+            password: "TestPassword123",
+            role: "Host"
         });
 
         const loginResponse = await agent
@@ -54,6 +55,40 @@ test("Listing and Review route integration tests", async (t) => {
             assert.equal(response.status, 200);
             assert.match(response.text, /listings/i);
         });
+        await t.test("Guest cannot create a listing", async () => {
+            const guestUser = await User.create({
+                name: "Integration Guest",
+                email: "integration.guest@example.com",
+                password: "TestPassword123",
+                role: "Guest"
+            });
+
+            const guestAgent = request.agent(app);
+
+            const loginResponse = await guestAgent
+                .post("/login")
+                .type("form")
+                .send({
+                    email: "integration.guest@example.com",
+                    password: "TestPassword123"
+                });
+
+            assert.equal(loginResponse.status, 302);
+
+            const response = await guestAgent
+                .post("/listings")
+                .type("form")
+                .send(validListing);
+
+            assert.equal(response.status, 403);
+
+            const listing = await Listing.findOne({
+                title: "Integration Test Stay"
+            });
+
+            assert.equal(listing, null);
+        });
+
 
         await t.test("POST /listings creates a listing", async () => {
 
@@ -157,6 +192,53 @@ test("Listing and Review route integration tests", async (t) => {
             );
         });
 
+        await t.test("Another logged-in user cannot delete someone else's review", async () => {
+            const listing = await Listing.findOne({
+                title: "Updated Integration Stay"
+            });
+
+            const review = await Review.findOne({
+                comment: "Excellent stay"
+            });
+
+            const anotherUser = await User.create({
+                name: "Another Test User",
+                email: "another.test@example.com",
+                password: "TestPassword123",
+                role: "Guest"
+            });
+
+            const anotherAgent = request.agent(app);
+
+            const loginResponse = await anotherAgent
+                .post("/login")
+                .type("form")
+                .send({
+                    email: "another.test@example.com",
+                    password: "TestPassword123"
+                });
+
+            assert.equal(loginResponse.status, 302);
+
+            const response = await anotherAgent
+                .delete(`/listings/${listing._id}/reviews/${review._id}`);
+
+            assert.equal(response.status, 403);
+
+            // Original review must still exist
+            const existingReview = await Review.findById(review._id);
+            assert.ok(existingReview);
+
+            // Listing must still reference the review
+            const updatedListing = await Listing.findById(listing._id);
+            assert.ok(
+                updatedListing.reviews.some(
+                    (id) => id.equals(review._id)
+                )
+            );
+        });
+
+
         await t.test("DELETE review removes its record and listing reference", async () => {
             const listing = await Listing.findOne({
                 title: "Updated Integration Stay"
@@ -240,7 +322,8 @@ test("Listing and Review route integration tests", async (t) => {
 
             const review = await Review.create({
                 rating: 4,
-                comment: "Cleanup test"
+                comment: "Cleanup test",
+                author: testUser._id
             });
 
             listing.reviews.push(review._id);
