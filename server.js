@@ -1,4 +1,10 @@
 require("dotenv").config(); // to add the session secreat automatically
+if (
+  process.env.NODE_ENV !== "test" &&
+  !process.env.SESSION_SECRET
+) {
+  throw new Error("SESSION_SECRET is required");
+}
 
 const mongoose = require("mongoose");
 const app = require("./app");

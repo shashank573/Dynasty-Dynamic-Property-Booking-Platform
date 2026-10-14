@@ -143,6 +143,77 @@ test("Listing and Review route integration tests", async (t) => {
 
             assert.equal(updated.title, "Updated Integration Stay");
         });
+        await t.test("Another user cannot edit or delete someone else's listing", async () => {
+            const listing = await Listing.findOne({
+                title: "Updated Integration Stay"
+            });
+
+            const anotherUser = await User.create({
+                name: "Another Listing User",
+                email: "another.listing@example.com",
+                password: "TestPassword123",
+                role: "Host"
+            });
+
+            const anotherAgent = request.agent(app);
+
+            const loginResponse = await anotherAgent
+                .post("/login")
+                .type("form")
+                .send({
+                    email: "another.listing@example.com",
+                    password: "TestPassword123"
+                });
+
+            assert.equal(loginResponse.status, 302);
+
+            const editResponse = await anotherAgent
+                .put(`/listings/${listing._id}`)
+                .type("form")
+                .send({
+                    ...validListing,
+                    "listing[title]": "Unauthorized Change"
+                });
+
+            assert.equal(editResponse.status, 403);
+
+            const deleteResponse = await anotherAgent
+                .delete(`/listings/${listing._id}`);
+
+            assert.equal(deleteResponse.status, 403);
+
+            const unchangedListing = await Listing.findById(listing._id);
+            assert.equal(unchangedListing.title, "Updated Integration Stay");
+        });
+        await t.test("Listing update cannot change its owner", async () => {
+            const listing = await Listing.findOne({
+                title: "Updated Integration Stay"
+            });
+
+            const anotherUser = await User.create({
+                name: "Ownership Transfer User",
+                email: "ownership.transfer@example.com",
+                password: "TestPassword123",
+                role: "Host"
+            });
+
+            const originalOwnerId = listing.owner.toString();
+
+            const response = await agent
+                .put(`/listings/${listing._id}`)
+                .type("form")
+                .send({
+                    ...validListing,
+                    "listing[title]": "Updated Integration Stay",
+                    "listing[owner]": anotherUser._id.toString()
+                });
+
+            assert.equal(response.status, 400);
+
+            const updatedListing = await Listing.findById(listing._id);
+
+            assert.equal(updatedListing.owner.toString(), originalOwnerId);
+        });
 
         await t.test("POST /listings rejects invalid data", async () => {
             const response = await agent
@@ -237,7 +308,43 @@ test("Listing and Review route integration tests", async (t) => {
                 )
             );
         });
+        await t.test("Cannot delete a review through the wrong listing URL", async () => {
+            const originalListing = await Listing.findOne({
+                title: "Updated Integration Stay"
+        });
 
+        const otherListing = await Listing.create({
+            title: "Different Test Stay",
+            description: "A separate test property",
+            price: 1000,
+            country: "India",
+            location: "Dehradun",
+            owner: testUser._id
+        });
+
+        const review = await Review.findOne({
+            comment: "Excellent stay"
+        });
+
+        const response = await agent
+            .delete(
+                `/listings/${otherListing._id}/reviews/${review._id}`
+            );
+
+        assert.equal(response.status, 403);
+
+        const existingReview = await Review.findById(review._id);
+        assert.ok(existingReview);
+
+        const originalListingAfter = await Listing.findById(
+            originalListing._id
+        );
+        assert.ok(
+            originalListingAfter.reviews.some(
+                (id) => id.equals(review._id)
+            )
+        );
+        });
 
         await t.test("DELETE review removes its record and listing reference", async () => {
             const listing = await Listing.findOne({
@@ -340,7 +447,7 @@ test("Listing and Review route integration tests", async (t) => {
                 null
             );
         });
-    } finally {
-        await closeTestDB();
-    }
+        } finally {
+            await closeTestDB();
+        }
 });

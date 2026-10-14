@@ -39,7 +39,7 @@ router.post("/", isLoggedIn, validateReview, wrapAsync(async(req, res) => {
 
 // Delete Review Route
 router.delete("/:reviewId", isLoggedIn, wrapAsync(async (req, res) => {
-    let { id, reviewId } = req.params;
+    const { id, reviewId } = req.params;
 
     // Find the review
     const review = await Review.findById(reviewId);
@@ -58,13 +58,29 @@ router.delete("/:reviewId", isLoggedIn, wrapAsync(async (req, res) => {
         );
     }
 
-    // Remove review reference from listing
-    await Listing.findByIdAndUpdate(id, {
-        $pull: { reviews: reviewId }
-    });
+    // Find the listing and verify that this review belongs to it
+    const listing = await Listing.findById(id);
+
+    if (!listing) {
+        return res.status(404).send("Listing not found.");
+    }
+
+    const reviewBelongsToListing = listing.reviews.some(
+        (listedReviewId) => listedReviewId.equals(review._id)
+    );
+
+    if (!reviewBelongsToListing) {
+        return res.status(403).send(
+            "This review does not belong to the specified listing."
+        );
+    }
+
+    // Remove the review reference from the listing
+    listing.reviews.pull(review._id);
+    await listing.save();
 
     // Delete the review itself
-    await Review.findByIdAndDelete(reviewId);
+    await Review.findByIdAndDelete(review._id);
 
     res.redirect(`/listings/${id}`);
 }));

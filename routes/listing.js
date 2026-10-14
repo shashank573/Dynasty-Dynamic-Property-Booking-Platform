@@ -82,10 +82,12 @@ router.get("/:id/edit", isLoggedIn, isOwner, wrapAsync(async (req, res) => {
 router.put("/:id", isLoggedIn, isOwner, validateListing, wrapAsync(async (req, res) => {
     let {id} = req.params;
 
+    const { owner, ...listingData } = req.body.listing;
+
     await Listing.findByIdAndUpdate(
         id,
-        {...req.body.listing},
-        {runValidators: true}
+        listingData,
+        { runValidators: true }
     );
 
     res.redirect(`/listings/${id}`);
