@@ -79,12 +79,16 @@ router.post("/reservations", isLoggedIn, async (req, res, next) => {
         if (!listingExists) return res.status(404).json({ error: "Property not found." });
 
         let reservation;
+        // OS CONCEPT: Atomicity
+        // USE HERE: Slot selection, overlap checking, and reservation creation commit or roll back together.
         await session.withTransaction(async () => {
             const filter = { listing: listingId, isActive: true };
             if (parkingId) filter._id = parkingId;
             const slots = await Parking.find(filter).sort({ slotNumber: 1 }).session(session);
             for (const slot of slots) {
-                // Shared write makes concurrent attempts for this slot conflict at the database level.
+                // OS CONCEPT: Concurrency Control / Race Condition Prevention
+                // USE HERE: The shared Parking write makes concurrent reservations for the same slot
+                // conflict at the database level, preventing overlapping active reservations.
                 const write = await Parking.updateOne(
                     { _id: slot._id, isActive: true },
                     { $inc: { bookingVersion: 1 } }, { session }
@@ -150,8 +154,9 @@ router.patch("/reservations/:id/cancel", isLoggedIn, async (req, res, next) => {
             return res.status(409).json({ error: "Only pending or confirmed future reservations can be cancelled." });
         }
 
-        // Atomic conditional update prevents a stale or competing request from
-        // cancelling a reservation after its status or start time has changed.
+        // OS CONCEPT: Atomic Operation / Race Condition Prevention
+        // USE HERE: Conditional status update means a stale or competing request cannot cancel
+        // a reservation after its status or start time has changed.
         const cancelled = await ParkingReservation.findOneAndUpdate(
             {
                 _id: req.params.id,
