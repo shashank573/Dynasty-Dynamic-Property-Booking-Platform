@@ -140,15 +140,33 @@ router.patch("/reservations/:id/cancel", isLoggedIn, async (req, res, next) => {
             _id: req.params.id, guest: req.session.userId
         });
         if (!reservation) return res.status(404).json({ error: "Parking reservation not found." });
-        if (reservation.status === "Cancelled") {
-            return res.status(409).json({ error: "Reservation is already cancelled." });
-        }
         if (reservation.reservationType === "property") {
             return res.status(409).json({ error: "Property-linked parking must be cancelled through the property booking workflow." });
         }
-        reservation.status = "Cancelled";
-        await reservation.save();
-        return res.status(200).json({ message: "Parking reservation cancelled.", reservation });
+        if (reservation.status === "Cancelled") {
+            return res.status(409).json({ error: "Reservation is already cancelled." });
+        }
+        if (!["Pending", "Confirmed"].includes(reservation.status) || reservation.startAt <= new Date()) {
+            return res.status(409).json({ error: "Only pending or confirmed future reservations can be cancelled." });
+        }
+
+        // Atomic conditional update prevents a stale or competing request from
+        // cancelling a reservation after its status or start time has changed.
+        const cancelled = await ParkingReservation.findOneAndUpdate(
+            {
+                _id: req.params.id,
+                guest: req.session.userId,
+                reservationType: "independent",
+                status: { $in: ["Pending", "Confirmed"] },
+                startAt: { $gt: new Date() }
+            },
+            { $set: { status: "Cancelled" } },
+            { new: true, runValidators: true }
+        );
+        if (!cancelled) {
+            return res.status(409).json({ error: "Reservation can no longer be cancelled." });
+        }
+        return res.status(200).json({ message: "Parking reservation cancelled.", reservation: cancelled });
     } catch (error) { next(error); }
 });
 
