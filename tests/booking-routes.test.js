@@ -8,6 +8,8 @@ const User = require("../models/user");
 const Listing = require("../models/listing");
 const Unit = require("../models/unit");
 const Booking = require("../models/booking");
+const Parking = require("../models/parking");
+const ParkingReservation = require("../models/parkingReservation");
 
 const {
     connectToTestDB,
@@ -289,6 +291,53 @@ test("Booking route integration tests", async (t) => {
                 assert.equal(activeBookings, 1);
             }
         );
+
+
+        await t.test("automatically assigns free parking with a property booking", async () => {
+            await Booking.deleteMany({});
+            await ParkingReservation.deleteMany({});
+            const slot = await Parking.create({ listing: listing._id, slotNumber: "A-01", pricePerHour: 0, pricePerDay: 0 });
+            const response = await agent.post("/bookings").type("form").send({
+                "booking[unit]": unit._id.toString(), "booking[checkIn]": "2026-12-20", "booking[checkOut]": "2026-12-23"
+            });
+            assert.equal(response.status, 201);
+            assert.equal(response.body.parking.slotNumber, "A-01");
+            const reservation = await ParkingReservation.findOne({ parking: slot._id });
+            assert.ok(reservation);
+            assert.equal(reservation.reservationType, "property");
+            assert.equal(reservation.totalPrice, 0);
+            assert.equal(reservation.booking.toString(), response.body.booking.id);
+        });
+
+        await t.test("asks guest before proceeding when parking is unavailable", async () => {
+            await Booking.deleteMany({});
+            await ParkingReservation.deleteMany({});
+            const slot = await Parking.findOne({ listing: listing._id });
+            await ParkingReservation.create({
+                guest: guest._id, parking: slot._id,
+                startAt: new Date("2026-12-25T00:00:00.000Z"),
+                endAt: new Date("2026-12-28T00:00:00.000Z"),
+                reservationType: "independent", billingUnit: "day", totalPrice: 450, status: "Confirmed"
+            });
+            const response = await agent.post("/bookings").type("form").send({
+                "booking[unit]": unit._id.toString(), "booking[checkIn]": "2026-12-25", "booking[checkOut]": "2026-12-28"
+            });
+            assert.equal(response.status, 409);
+            assert.equal(response.body.requiresParkingChoice, true);
+            assert.equal(await Booking.countDocuments({ unit: unit._id }), 0);
+            assert.equal(await ParkingReservation.countDocuments({ status: "Confirmed" }), 1);
+        });
+
+        await t.test("creates property booking without parking after explicit guest choice", async () => {
+            const response = await agent.post("/bookings").type("form").send({
+                "booking[unit]": unit._id.toString(), "booking[checkIn]": "2026-12-25",
+                "booking[checkOut]": "2026-12-28", "booking[parkingChoice]": "without"
+            });
+            assert.equal(response.status, 201);
+            assert.equal(response.body.parking, null);
+            assert.equal(await Booking.countDocuments({ unit: unit._id }), 1);
+            assert.equal(await ParkingReservation.countDocuments({ status: "Confirmed" }), 1);
+        });
 
     } finally {
         await closeTestDB();
