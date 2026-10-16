@@ -79,6 +79,25 @@ test("Parking reservation route integration tests", async (t) => {
             const cancelled = await agent.patch(`/parking/reservations/${id}/cancel`);
             assert.equal(cancelled.status, 200);
             assert.equal(cancelled.body.reservation.status, "Cancelled");
+
+            const repeated = await agent.patch(`/parking/reservations/${id}/cancel`);
+            assert.equal(repeated.status, 409);
+        });
+
+        await t.test("does not allow cancellation of a completed reservation", async () => {
+            const completed = await ParkingReservation.create({
+                guest: guest._id,
+                parking: slot._id,
+                startAt: new Date("2026-10-01T10:00:00Z"),
+                endAt: new Date("2026-10-01T12:00:00Z"),
+                reservationType: "independent",
+                billingUnit: "hour",
+                totalPrice: 40,
+                status: "Completed"
+            });
+            const response = await agent.patch(`/parking/reservations/${completed._id}/cancel`);
+            assert.equal(response.status, 409);
+            assert.equal((await ParkingReservation.findById(completed._id)).status, "Completed");
         });
 
         await t.test("rejects invalid time ranges", async () => {
