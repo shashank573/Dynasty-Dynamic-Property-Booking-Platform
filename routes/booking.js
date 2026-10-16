@@ -78,10 +78,15 @@ router.post("/", isLoggedIn, validateBooking, wrapAsync(async (req, res) => {
                 }).sort({ slotNumber: 1 }).session(session);
 
                 for (const slot of slots) {
-                    await Parking.updateOne(
+                    // OS CONCEPT: Concurrency Control / Stale-State Prevention
+                    // USE HERE: Re-checking matchedCount after the conditional write prevents a slot
+                    // deactivated by a concurrent operation from being assigned from a stale query result.
+                    const slotWrite = await Parking.updateOne(
                         { _id: slot._id, isActive: true },
                         { $inc: { bookingVersion: 1 } }, { session }
                     );
+                    if (!slotWrite.matchedCount) continue;
+
                     const parkingConflict = await ParkingReservation.findOne({
                         parking: slot._id, status: { $in: ["Pending", "Confirmed"] },
                         startAt: { $lt: checkOutDate }, endAt: { $gt: checkInDate }
