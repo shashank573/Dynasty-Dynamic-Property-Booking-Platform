@@ -18,8 +18,8 @@ test("App route tests", async (t) => {
         await t.test("GET / returns the root response", async () => {
             const response = await request(app).get("/");
 
-            assert.equal(response.status, 200);
-            assert.equal(response.text, "Hi, iam root");
+            assert.equal(response.status, 302);
+            assert.equal(response.headers.location, "/listings");
         });
 
         await t.test("GET /listings/new redirects logged-out users", async () => {

@@ -119,6 +119,34 @@ test("Listing and Review route integration tests", async (t) => {
             assert.equal(response.status, 200);
             assert.match(response.text, /Integration Test Stay/);
         });
+        await t.test(
+            "GET /listings/:id/units handles a listing with missing owner",
+            async () => {
+                const result = await Listing.collection.insertOne({
+                    title: "Ownerless Regression Test Listing",
+                    description: "Used to test missing-owner protection",
+                    price: 1000,
+                    country: "India",
+                    location: "Dehradun"
+                });
+
+                try {
+                    const response = await agent.get(
+                        `/listings/${result.insertedId}/units`
+                    );
+
+                    assert.equal(response.status, 403);
+                    assert.equal(
+                        response.text,
+                        "Listing ownership is not configured."
+                    );
+                } finally {
+                    await Listing.collection.deleteOne({
+                        _id: result.insertedId
+                    });
+                }
+            }
+        );
 
         await t.test("PUT /listings/:id updates a listing", async () => {
             const listing = await Listing.findOne({

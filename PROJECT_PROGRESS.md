@@ -47,6 +47,7 @@
 12. Do not run the destructive seed script against a database containing data that must be preserved.
 13. Do not mark a feature complete until its behavior has been tested.
 14. Continue from the actual repository state, not assumptions.
+15. Before starting a new day or implementation task, explain its objective and plan; make no code changes until the user explicitly approves them.
 
 ---
 
@@ -103,6 +104,8 @@ The API endpoints were manually verified during Day 1.
 - `isHostOrAdmin` middleware has been added.
 - Creating a listing and accessing the new-listing page require Host or Admin authorization.
 - Listing modification routes retain ownership checks.
+- Listing creation assigns the logged-in user as the listing owner.
+- A missing Listing owner is handled safely by returning HTTP 403 with `Listing ownership is not configured.`
 - Review creation requires login.
 - New reviews record the logged-in user as their author.
 - Review deletion requires login and verifies review ownership.
@@ -167,6 +170,7 @@ The API endpoints were manually verified during Day 1.
 - Units without booking history can be deleted by the authorized Listing owner.
 - Added `tests/unit-routes.test.js`.
 - Integration tests cover authentication, role restrictions, ownership, validation, Unit creation, listing, updating, and deletion behavior.
+- Added a regression test in `tests/routes.test.js` for a Listing with a missing owner. The test verifies that `GET /listings/:id/units` returns HTTP 403 and the message `Listing ownership is not configured.`
 
 ### Automated Testing
 
@@ -185,16 +189,18 @@ The API endpoints were manually verified during Day 1.
   - Booking routes and overlapping-booking prevention
   - Unit management routes
 
-**Latest reported full test result:**
+**Latest reported full test result (user-reported):**
 
-- Tests: 75
-- Passed: 75
+- Tests: 76
+- Passed: 76
 - Failed: 0
 - Cancelled: 0
 - Skipped: 0
 - Todo: 0
 
-The latest reported `npm test` run completed successfully in approximately 8.9 seconds.
+The latest reported `npm test` run completed successfully in approximately 9.23 seconds.
+
+These results were reported in the project conversation. Run `npm test` again if fresh verification against the current checkout is needed.
 
 **Concurrency verification:**
 
@@ -378,7 +384,7 @@ Implemented:
 
 **Verification completed:**
 
-- Full test suite: 75 passed, 0 failed, 0 cancelled.
+- Full test suite: 76 passed, 0 failed, 0 cancelled.
 - Simultaneous overlapping-booking test: 10 reported repeated runs passed.
 - The concurrency test checks that only one of two simultaneous overlapping booking requests succeeds and that only one active overlapping booking remains.
 
@@ -407,7 +413,7 @@ Implemented:
 
 **Verification completed:**
 
-- Full test suite: 75 passed.
+- Full test suite: 76 passed.
 - Failed tests: 0.
 - Cancelled tests: 0.
 
@@ -418,7 +424,7 @@ Implemented:
 - Unit management routes implemented and tested.
 - Booking creation and overlap prevention implemented and tested for the covered scenarios.
 - MongoDB transaction-based coordination tested using a temporary replica-set database.
-- Full test suite passed: 75/75 tests.
+- Full test suite passed: 76/76 tests.
 - Simultaneous overlapping-booking test passed in 10 repeated runs.
 - `git diff --check` produced no errors in the reported check.
 
@@ -476,7 +482,10 @@ The goal of approximately 75% project completion by Day 5 is a target, not a gua
 - Avoid `git add .` without checking which files will be included.
 - Never commit `.env` files, credentials, or secrets.
 - Do not discard existing local modifications without reviewing them.
-
+- Latest specifically reported `git status --short`:
+   M middleware/auth.js
+   M tests/routes.test.js
+- These are the last reported changes, not a verified current Git status. Check the actual repository before committing, pushing, or discarding any changes.
 ---
 
 ## 9. Session Handoff
@@ -500,7 +509,7 @@ Day 1, Day 2, and the current Day 3 scope are recorded as completed. Follow-up r
 
 ### Latest Reported Verification
 
-- Full test suite: 75 passed, 0 failed, 0 cancelled.
+- Full test suite: 76 passed, 0 failed, 0 cancelled.
 - The latest reported full test run completed successfully.
 - The simultaneous overlapping-booking test passed in 10 repeated runs.
 - Test database cleanup completed successfully in the latest full test run.
@@ -527,5 +536,8 @@ Day 1, Day 2, and the current Day 3 scope are recorded as completed. Follow-up r
 5. Continue with the next approved project task only after reviewing its requirements.
 6. Preserve existing local modifications.
 7. Never commit credentials, `.env` files, or secrets.
+8. Day 4 has not started. Begin with a read-only repository audit and code inspection. Do not make code changes until the user explicitly approves the proposed changes.
 
-**Current stopping point:** Day 3 Unit Management and Booking Foundation are implemented and tested for the covered scenarios. The latest full test suite passed 75/75 tests, and the simultaneous overlapping-booking test passed in 10 repeated runs. Production transaction configuration and transaction error handling remain to be reviewed. The final Day 3 Git commit and push must be verified separately.
+**Current stopping point:** Day 3 Unit Management and Booking Foundation are implemented and tested for the reported scenarios. The latest reported full test suite passed 76/76 tests, and the simultaneous overlapping-booking test passed in 10 reported repeated runs. Production MongoDB transaction support and transaction error handling remain to be reviewed. The final Day 3 Git commit and push status must be verified separately.
+
+**Day 4 has not started.** The agreed first step is a read-only repository audit. No Day 4 code changes have been approved or made.

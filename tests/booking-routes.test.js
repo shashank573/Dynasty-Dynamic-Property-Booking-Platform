@@ -142,6 +142,69 @@ test("Booking route integration tests", async (t) => {
         );
 
         await t.test(
+            "returns 404 when the requested unit does not exist",
+            async () => {
+                await Booking.deleteMany({});
+
+                // Valid ObjectId, lekin database mein save nahi kiya gaya.
+                const nonexistentUnitId = new Unit()._id.toString();
+
+                const response = await agent
+                    .post("/bookings")
+                    .type("form")
+                    .send({
+                        "booking[unit]": nonexistentUnitId,
+                        "booking[checkIn]": "2026-12-10",
+                        "booking[checkOut]": "2026-12-13"
+                    });
+
+                assert.equal(response.status, 404);
+
+                const bookings = await Booking.countDocuments({
+                    unit: nonexistentUnitId
+                });
+
+                assert.equal(bookings, 0);
+            }
+        );
+
+        await t.test(
+            "returns 409 when the requested unit is unavailable",
+            async () => {
+                await Booking.deleteMany({});
+
+                await Unit.updateOne(
+                    { _id: unit._id },
+                    { $set: { isAvailable: false } }
+                );
+
+                try {
+                    const response = await agent
+                        .post("/bookings")
+                        .type("form")
+                        .send({
+                            "booking[unit]": unit._id.toString(),
+                            "booking[checkIn]": "2026-12-10",
+                            "booking[checkOut]": "2026-12-13"
+                        });
+
+                    assert.equal(response.status, 409);
+
+                    const bookings = await Booking.countDocuments({
+                        unit: unit._id
+                    });
+
+                    assert.equal(bookings, 0);
+                } finally {
+                    await Unit.updateOne(
+                        { _id: unit._id },
+                        { $set: { isAvailable: true } }
+                    );
+                }
+            }
+        );
+
+        await t.test(
             "rejects overlapping confirmed or pending bookings",
             async () => {
                 await Booking.deleteMany({});

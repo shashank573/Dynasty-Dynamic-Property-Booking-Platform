@@ -44,7 +44,12 @@ async function isOwner(req, res, next) {
         if (!listing) {
             return res.status(404).send("Listing not found.");
         }
-
+        // Handle listings with missing ownership data
+        if (!listing.owner) {
+            return res.status(403).send(
+                "Listing ownership is not configured."
+            );
+        }
         if (listing.owner.toString() !== req.session.userId) {
             return res.status(403).send("You are not allowed to modify this listing.");
         }

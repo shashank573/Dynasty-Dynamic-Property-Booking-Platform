@@ -74,7 +74,7 @@ app.engine("ejs", ejsMate);
 
 // ROOT ROUTE
 app.get("/", (req, res) => {
-    res.send("Hi, iam root");
+    res.redirect("/listings");
 });
 
 // app.get("/testListing", async (req, res) => {
