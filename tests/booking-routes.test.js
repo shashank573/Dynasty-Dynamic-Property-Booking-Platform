@@ -383,7 +383,15 @@ test("Booking route integration tests", async (t) => {
         await t.test("asks guest before proceeding when parking is unavailable", async () => {
             await Booking.deleteMany({});
             await ParkingReservation.deleteMany({});
-            const slot = await Parking.findOne({ listing: listing._id });
+            // Keep this scenario independent of parking slots created by earlier tests.
+            await Parking.deleteMany({ listing: listing._id });
+            const slot = await Parking.create({
+                listing: listing._id,
+                slotNumber: "CHOICE-01",
+                pricePerHour: 0,
+                pricePerDay: 0,
+                isActive: true
+            });
             await ParkingReservation.create({
                 guest: guest._id, parking: slot._id,
                 startAt: new Date("2026-12-25T00:00:00.000Z"),
