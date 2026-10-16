@@ -1,711 +1,167 @@
-# DynaStay — Current Progress & 7-Task Roadmap
+# DynaStay — Project Progress & 7 Major Tasks
 
-> **Current status updated:** 2026-10-16, based on the latest project conversation and user-reported test output. Older historical notes later in this document may describe earlier snapshots; this current-status section takes precedence wherever they conflict.
+> **Progress snapshot:** 2026-10-16  
+> This section is the current source of truth. Older implementation notes, if present in repository history, should not override the current status below.
 
 ## Current Snapshot
 
-- **Repository:** shashank573/Dynasty-Dynamic-Property-Booking-Platform
-- **Current working branch for ongoing Complaints work:** feature/complaints
-- **Parking Reservations:** merged into main via PR #2 (merge commit reported as 9f020923fd6b03c6de343329d49e3151cdb44131).
-- **Complaints:** backend implementation committed to feature/complaints; **not merged into main**.
-- **Latest user-reported full test run:** npm test — **103 passed, 0 failed, 0 cancelled, 0 skipped** (about 10.6 seconds).
-- **Latest user-reported focused Complaints run:** NODE_ENV=test node --test tests/complaints.test.js — **9 passed, 0 failed**.
-- These test results are user-reported from their local checkout; they are not an independent execution in this documentation update.
-- **No code changes or merges were made as part of this documentation update.**
+- **Repository:** `shashank573/Dynasty-Dynamic-Property-Booking-Platform`
+- **Active feature branch:** `feature/complaints`
+- **Parking Reservations:** merged into `main` through PR #2. Merge commit previously reported as `9f020923fd6b03c6de343329d49e3151cdb44131`.
+- **Complaints Backend:** implemented on `feature/complaints`; **not merged into `main`**.
+- **Latest user-reported full test run:** `npm test` — **103 passed, 0 failed, 0 cancelled, 0 skipped** (approximately 10.6 seconds).
+- **Latest user-reported Complaints focused run:** `NODE_ENV=test node --test tests/complaints.test.js` — **9 passed, 0 failed**.
+- Test outcomes above were provided by the user from their local checkout; they were not independently rerun during this documentation update.
+- This update changes documentation only; no application code was changed and no branch was merged.
 
-## 7 Major Tasks — Roadmap and Status
+## 7 Major Tasks — Status and Remaining Work
 
 ### 1. Existing Backend & Booking Reliability
-**Status: Core implementation and current test coverage in place; further production-readiness review remains.**
+**Status: Core implementation present; production-readiness review remains.**
 
-Completed / present:
-- Existing Express 5, Node.js, MongoDB/Mongoose, EJS, Joi and session-based authentication structure.
-- User signup/login, bcrypt password hashing, Guest/Host/Admin roles, and prevention of public Admin signup.
-- Session hardening, including session regeneration and SESSION_SECRET startup validation.
-- Listing and Unit management, validation, and ownership/role checks.
-- Booking model and creation route with server-side price calculation, date validation, availability checks, and overlapping-booking protection.
+Implemented:
+- Node.js, Express 5, MongoDB/Mongoose, EJS, Joi validation and session-based authentication.
+- Signup/login, bcrypt password hashing, Guest/Host/Admin roles, and prevention of public Admin signup.
+- Session security improvements, including session regeneration and `SESSION_SECRET` startup validation.
+- Listing and Unit management, validation and ownership/role checks.
+- Booking model and creation route with server-side price calculation, date validation, availability checks and overlapping-booking prevention.
 - MongoDB transaction/shared-document coordination for concurrent booking attempts.
-- Booking cancellation route for eligible future bookings; linked parking reservation lifecycle is handled transactionally.
+- Booking cancellation for eligible future bookings, with linked parking reservation lifecycle handled transactionally.
 - Review author ownership and deletion protections.
-- OS concept notes in docs/OS_CONCEPT_LENS.md for concurrency, race conditions, transaction atomicity, and conditional updates.
-
-Follow-up:
-- Review booking transaction retry/error handling and deployment MongoDB transaction support.
-- Audit date/time edge cases, error paths, and booking lifecycle policies.
-- Do not claim all production concurrency cases are proven merely because automated tests pass.
-
-### 2. Parking Reservations
-**Status: Implemented, tested locally according to reported results, and merged into main.**
-
-Completed:
-- Parking slot and reservation workflows, including independent hourly/daily reservations.
-- Availability checks, reservation listing/cancellation, overlap prevention, and concurrent reservation protection.
-- Property booking can coordinate parking allocation; if parking is unavailable, the guest is asked whether to continue without it.
-- Cancelling an eligible property booking also releases its linked parking reservation within a transaction.
-- Added focused parking and booking integration tests, including lifecycle and concurrency scenarios.
-- PR #2 merged into main.
-
-Latest reported verification:
-- NODE_ENV=test node --test tests/parking.test.js tests/booking-routes.test.js: 25 passed, 0 failed.
-- The later full npm test run reported 103 passed, 0 failed.
-
-Follow-up:
-- Confirm production MongoDB transaction configuration and review cancellation/slot inventory edge cases during the final security pass.
-
-### 3. Complaints
-**Status: Initial backend implemented and focused/full automated tests passing; frontend and broader policy review remain.**
-
-Implemented on feature/complaints:
-- models/complaint.js with complainant, optional booking reference, category, subject, description, status, admin note, handler and timestamps.
-- routes/complaint.js, mounted at /complaints.
-- Authenticated complaint submission and a user-only complaint history endpoint.
-- Optional booking reference is accepted only if the booking belongs to the logged-in guest.
-- Admin-only complaint queue with optional status filtering.
-- Admin-only status updates with an internal note and handler metadata.
-- tests/complaints.test.js covers login protection, validation, booking ownership, privacy, and admin authorization/status updates.
-
-Verification reported by the user:
-- Focused complaints suite: **9 passed, 0 failed**.
-- Full suite: **103 passed, 0 failed, 0 cancelled, 0 skipped**.
+- OS/concurrency concept notes in `docs/OS_CONCEPT_LENS.md`.
 
 Remaining:
-- Perform a security review of admin authorization, allowed status transitions, input validation, and information exposure.
-- Decide complaint workflow/policy edge cases.
-- Add complaint UI/frontend integration.
-- Keep the feature branch unmerged until the user explicitly approves merging.
+- Review transaction retry and error handling.
+- Confirm production MongoDB deployment supports transactions.
+- Review date/time boundaries, booking lifecycle policies and failure recovery.
+- Avoid treating passing automated tests as proof that every production concurrency case is covered.
+
+### 2. Parking Reservations
+**Status: Implemented and merged into `main`; reported automated tests pass.**
+
+Implemented:
+- Parking slot and reservation workflows, including independent hourly and daily reservations.
+- Availability checks, guest reservation listing/cancellation, overlap prevention and concurrent reservation protection.
+- Property booking can coordinate parking allocation; when no slot is available, the guest is asked whether to continue without parking.
+- Property-linked parking reservation status follows the parent booking, and eligible booking cancellation releases the linked parking reservation in a transaction.
+- Focused parking and booking integration tests for billing, overlap/concurrency, slot lifecycle and cancellation.
+- PR #2 merged into `main`.
+
+Reported verification:
+- Focused parking + booking tests: 25 passed, 0 failed.
+- Latest full suite: 103 passed, 0 failed.
+
+Remaining:
+- Confirm transaction support in production configuration.
+- Review inventory provisioning, cancellation edge cases and transaction error handling during final security review.
+
+### 3. Complaints
+**Status: Initial backend implemented on `feature/complaints`; focused and full tests pass according to user-reported results. Frontend is pending.**
+
+Implemented:
+- `models/complaint.js`: complainant, optional booking reference, category, subject, description, status, admin note, handler metadata and timestamps.
+- `routes/complaint.js`, mounted at `/complaints`.
+- Authenticated complaint submission and user-specific complaint history.
+- Optional booking references are accepted only if the booking belongs to the logged-in guest.
+- Admin-only complaint queue with status filtering.
+- Admin-only status updates with internal note and handler metadata.
+- `tests/complaints.test.js` covers login protection, validation, booking ownership, complaint privacy, and admin authorization/status updates.
+
+Reported verification:
+- Focused Complaints tests: 9 passed, 0 failed.
+- Full `npm test`: 103 passed, 0 failed, 0 cancelled, 0 skipped.
+
+Remaining:
+- Security review of admin authorization, input validation, allowed status transitions and information exposure.
+- Decide workflow rules for rejected/resolved complaints and whether status transitions need restrictions.
+- Add complaint frontend/UI integration.
+- Keep this branch unmerged until the user explicitly approves a merge.
 
 ### 4. Admin Verification
 **Status: Not started.**
 
 Planned:
-- Inspect existing User/Host/property data models and current authorization rules before designing the feature.
-- Define what evidence a Host must submit and what exactly the Admin reviews.
-- Define verification states (for example: Pending, Approved, Rejected) and the permitted transitions.
+- Inspect existing User, Host and property models and authorization before designing changes.
+- Agree on evidence/data Hosts must submit and what an Admin reviews.
+- Define verification states and permitted transitions, such as Pending, Approved and Rejected.
 - Add admin-only review/decision routes and audit metadata.
-- Add model, route, authorization, validation and edge-case tests.
-- Do not implement until the requirements/design are reviewed and the user approves the change plan.
+- Add model, route, validation, authorization and edge-case tests.
+- First propose the design and exact file changes; do not implement until the user approves the plan.
 
 ### 5. Trust Score
 **Status: Not started.**
 
 Planned:
-- Agree on a transparent score definition before coding.
-- Identify reliable inputs (for example, completed stays, review signals, verified status, and upheld complaints) and how each affects the score.
-- Define bounds, missing-data behavior, update strategy, and abuse resistance.
-- Avoid using unverified allegations as automatic penalties.
-- Add calculation tests and explainable output.
-- Do not choose arbitrary weights without approval.
+- Agree on a transparent and explainable scoring model before coding.
+- Identify reliable signals and how each affects the score, such as completed stays, reviews, verified status and upheld complaints.
+- Define score bounds, missing-data behavior, update strategy and abuse resistance.
+- Do not automatically penalize users for unverified allegations.
+- Add calculation tests and document score explanations.
+- Do not invent weights without user approval.
 
 ### 6. Frontend Integration
-**Status: Pending; React was planned but implementation is not confirmed. Existing EJS interface must be preserved unless migration is approved.**
+**Status: Pending. Current EJS interface exists; React was planned but a migration is not confirmed.**
 
 Planned:
-- Audit the current EJS pages and available routes first.
-- Decide whether new features should initially use EJS or whether a React integration is explicitly desired.
-- Integrate parking, complaints, verification and Trust Score flows with suitable loading, validation, error and success states.
-- Ensure controls and pages reflect backend authorization and status.
-- Add or update end-to-end/integration tests.
-- Avoid starting a full frontend migration without a clear approved plan.
+- Audit current EJS pages and available routes.
+- Decide whether to integrate features into EJS first or explicitly plan a React integration.
+- Integrate parking, complaints, verification and Trust Score flows.
+- Add loading, validation, success/error and authorization-aware states.
+- Add end-to-end/integration coverage for key user flows.
+- Preserve existing EJS functionality unless a migration is explicitly approved.
 
 ### 7. Final Security, Testing & Documentation
-**Status: Not started as a final phase; continue targeted security checks while implementing each task.**
+**Status: Final phase not started; targeted security checks should continue throughout implementation.**
 
 Planned:
-- Run the full suite and focused suites after meaningful changes.
-- Review authentication, authorization, ownership checks, input validation, session configuration, secrets, error handling, and sensitive-data exposure.
-- Review transaction behavior and deployment configuration.
-- Check dependency/configuration and production setup.
-- Update setup instructions, API documentation, architecture notes and PROJECT_PROGRESS.md.
+- Run focused tests and full `npm test` after meaningful changes.
+- Review authentication, authorization, ownership, input validation, sessions, secrets, error handling and sensitive-data exposure.
+- Review transaction behavior and production configuration.
+- Check dependencies and deployment setup.
+- Update setup instructions, API/architecture documentation and this progress tracker.
 - Record only tests actually run and their real results.
-- Verify Git status and diffs; never commit secrets.
-- Run a final end-to-end smoke test and record remaining known risks.
+- Review Git status/diffs and ensure secrets are never committed.
+- Run a final end-to-end smoke test and document known risks.
 
 ## Immediate Next Steps
 
-1. Keep working on feature/complaints; do not merge it into main without explicit approval.
-2. Perform the Complaints security review before adding UI or declaring the feature complete.
-3. Review the current repository implementation of Admin Verification requirements and propose a plan before editing code.
-4. Start Admin Verification only after the user approves the proposed plan.
-5. Keep the seven major tasks in this order unless the user changes priorities.
+1. Continue on `feature/complaints`; do not merge into `main` without explicit approval.
+2. Perform a read-only security review of the Complaints backend and report findings before making code changes.
+3. Address any approved security fixes and add regression tests.
+4. Plan complaint UI integration.
+5. Before implementing Admin Verification, inspect the current repository and propose the design/file changes for approval.
+6. Continue in the seven-task order unless the user changes priorities.
 
----
+## Project Stack and Working Rules
 
-# DynaStay — Project Progress Tracker
-
-## 1. Project Scope
-
-- **Project:** DynaStay — Dynamic Property Booking Platform
-- **Backend:** Node.js + Express 5
+- **Backend:** Node.js, Express 5
 - **Database:** MongoDB + Mongoose
-- **Current web interface:** EJS templates
-- **Testing:** Node.js built-in test runner, Supertest, and MongoDB Memory Server
+- **Current interface:** EJS templates
 - **Validation:** Joi
-- **Authentication:** Session-based authentication with bcrypt password hashing
-- **User roles:** Guest, Host, Admin
-- **Frontend:** React planned; implementation not confirmed
-- **JWT authentication:** Planned; not confirmed as implemented
-
-### Planned Core Features
-
-- Property listings
-- Independently bookable units
-- Date-based bookings
-- Parking reservations
-- Booking overlap prevention
-- Reviews and review ownership
-- Complaints
-- Admin verification
-- Trust Score
-- Trial payment workflows
-- Booking cancellation workflows
-
-**Out of scope:** Live payment gateway and mobile app, unless the project scope changes.
-
----
-
-## 2. Project Working Rules
-
-1. Explain concepts in simple Hinglish.
-2. Work on one task at a time.
-3. Inspect existing code before making changes.
-4. Explain the goal, reason, exact file paths, commands, expected output, and tests.
-5. Do not move to the next task until the current task has been verified.
-6. Preserve existing functionality unless a change is necessary.
-7. Never claim tests passed unless they were actually run.
-8. Keep this file updated after verified milestones.
-9. Review Git status and staged changes before committing.
-10. Never commit `.env` files, credentials, or secrets.
-11. Avoid destructive Git commands unless their effects are understood and explicitly intended.
-12. Do not run the destructive seed script against a database containing data that must be preserved.
-13. Do not mark a feature complete until its behavior has been tested.
-14. Continue from the actual repository state, not assumptions.
-15. Before starting a new day or implementation task, explain its objective and plan; make no code changes until the user explicitly approves them.
-
----
-
-## 3. Current Project Progress
-
-### Backend and Application Structure
-
-- The project uses Node.js, Express 5, MongoDB/Mongoose, EJS, Joi, and Express Router.
-- Application configuration is separated from server startup:
-  - `app.js` exports the Express application.
-  - `server.js` handles MongoDB connection and server startup.
-- Existing Listing and Review functionality has been preserved.
-- Listing model CRUD tests and Listing/Review route integration tests are present.
-- Listing update route uses Mongoose `runValidators: true`.
-- Review timestamp default uses `Date.now`.
-- The project has a health endpoint and initial JSON API endpoints.
-- Unit and Booking models have been added.
-- Unit management routes and integration tests have been added.
-- Booking creation and overlapping-booking prevention have been implemented with MongoDB transaction-based coordination.
-
-### API Endpoints
-
-- `GET /api/health`
-  - Reports API health and MongoDB connection status.
-- `GET /api/listings`
-  - Returns listing data as JSON.
-- `GET /api/listings/:id`
-  - Returns an individual listing.
-  - Invalid listing IDs return HTTP 400.
-  - A valid ID without a matching listing returns HTTP 404.
-
-The API endpoints were manually verified during Day 1.
-
-### Authentication and User Management
-
-- User model exists in `models/user.js`.
-- Passwords are hashed using bcrypt.
-- Password verification uses the model's `comparePassword` method.
-- User roles are `Guest`, `Host`, and `Admin`.
-- The default role is `Guest`.
-- Signup and login routes use session-based authentication.
-- Signup validates input, rejects duplicate email addresses, and enforces a minimum password length.
-- Public signup cannot assign the Admin role.
-- Session configuration uses `express-session`.
-- MongoDB-backed session storage is used outside the test environment.
-- Session cookies include `httpOnly`, `sameSite: "lax"`, a 24-hour maximum age, and `secure` in production.
-- Login session regeneration was already implemented.
-- Signup session regeneration and session-save handling were added during Day 2.
-- `SESSION_SECRET` startup validation has been implemented.
-
-### Authorization and Review Security
-
-- Authentication middleware exists in `middleware/auth.js`.
-- `isHostOrAdmin` middleware has been added.
-- Creating a listing and accessing the new-listing page require Host or Admin authorization.
-- Listing modification routes retain ownership checks.
-- Listing creation assigns the logged-in user as the listing owner.
-- A missing Listing owner is handled safely by returning HTTP 403 with `Listing ownership is not configured.`
-- Review creation requires login.
-- New reviews record the logged-in user as their author.
-- Review deletion requires login and verifies review ownership.
-- Unauthorized review deletion returns HTTP 403.
-- Review deletion handles a missing author reference without calling `.toString()` on an absent value.
-- Review deletion removes the review record and its reference from the listing.
-
-### Unit Model and Validation
-
-**Status: Implemented and tested.**
-
-- Added `models/unit.js`.
-- Each Unit references its parent Listing using a Mongoose ObjectId.
-- Unit fields include:
-  - `listing`: required Listing reference.
-  - `name`: required string with whitespace trimming.
-  - `description`: optional string, defaulting to an empty string.
-  - `capacity`: required integer, minimum 1.
-  - `pricePerNight`: required number, minimum 0.
-  - `isAvailable`: Boolean, defaulting to `true`.
-  - `timestamps`: automatically maintains `createdAt` and `updatedAt`.
-- Added `tests/unit.test.js`.
-- Unit model validation tests cover valid creation, missing listing reference, invalid capacity, fractional capacity, negative nightly price, and missing unit name.
-
-### Booking Model and Booking Creation
-
-**Status: Implemented; local verification completed for the tested scenarios.**
-
-- Added `models/booking.js`.
-- Booking records reference the guest User and bookable Unit.
-- Booking data includes check-in, check-out, total price, and status.
-- Model validation covers required fields, date ordering, non-negative price, and supported status values.
-- Added `tests/booking.test.js`.
-- Added `routes/booking.js`.
-- Booking creation validates request data and rejects past check-in dates using IST date handling.
-- Guest identity is derived from the authenticated session.
-- Total price is calculated on the server using the Unit's nightly price and booking duration.
-- Unit availability and overlapping active bookings are checked.
-- A MongoDB transaction and shared Unit-document write are used to coordinate concurrent booking attempts.
-- Booking route tests include simultaneous overlapping booking requests.
-- The simultaneous overlapping-booking test was run 10 times, and all 10 reported runs passed.
-
-**Remaining risks and follow-up:**
-
-- Review transaction retry and error-handling behavior.
-- Verify that the intended deployment MongoDB configuration supports transactions.
-- The reported test results do not guarantee correctness under every production concurrency scenario.
-
-### Unit Management Routes
-
-**Status: Implemented and tested.**
-
-- Added `routes/unit.js`.
-- Registered Unit routes in `app.js` under `/listings/:id/units`.
-- Added Joi validation for Unit input in `schema.js`.
-- Added endpoints for listing, creating, updating, and deleting Units belonging to a Listing.
-- Unit operations use login and listing-owner authorization middleware.
-- Unit updates verify that the Unit belongs to the requested Listing.
-- Invalid Unit input is rejected.
-- Updating a Unit does not unintentionally reset its availability when `isAvailable` is omitted.
-- A Unit with booking history cannot be deleted; the route returns HTTP 409 and recommends setting `isAvailable` to `false`.
-- Units without booking history can be deleted by the authorized Listing owner.
-- Added `tests/unit-routes.test.js`.
-- Integration tests cover authentication, role restrictions, ownership, validation, Unit creation, listing, updating, and deletion behavior.
-- Added a regression test in `tests/routes.test.js` for a Listing with a missing owner. The test verifies that `GET /listings/:id/units` returns HTTP 403 and the message `Listing ownership is not configured.`
-
-### Automated Testing
-
-- Node.js built-in test runner is configured through `npm test`.
-- Supertest is used for HTTP-level tests.
-- MongoDB Memory Server is used for isolated database tests.
-- `tests/db-setup.js` manages temporary MongoDB setup and cleanup.
-- Automated tests cover:
-  - Application routes
-  - Signup behavior
-  - Listing model CRUD
-  - Listing/Review integration
-  - User model password hashing and default role
-  - Unit model validation
-  - Booking model validation
-  - Booking routes and overlapping-booking prevention
-  - Unit management routes
-
-**Latest reported full test result (user-reported):**
-
-- Tests: 76
-- Passed: 76
-- Failed: 0
-- Cancelled: 0
-- Skipped: 0
-- Todo: 0
-
-The latest reported `npm test` run completed successfully in approximately 9.23 seconds.
-
-These results were reported in the project conversation. Run `npm test` again if fresh verification against the current checkout is needed.
-
-**Concurrency verification:**
-
-- The simultaneous overlapping-booking integration test passed in 10 repeated runs.
-- Each reported run verified that only one of two simultaneous overlapping booking requests succeeded and that only one active overlapping booking remained.
-
-**Verification caveat:** These results establish that the tested scenarios passed. They do not establish that every production concurrency scenario, transaction failure, or deployment configuration has been verified.
-
-The earlier test-process cleanup concern should still be revisited if the test runner hangs in a future run.
-
-### Important Safety Note
-
-The seed script contains a deletion operation for existing listings. Do not run it against a database containing data that must be preserved.
-
-React frontend, JWT authentication, parking, complaints, admin verification, Trust Score, and payment workflows are not confirmed as implemented.
-
----
-
-## 4. Day 1 — Completed
-
-**Status: Completed**
-
-### Task 1 — Repository Audit
-
-- Reviewed the project scope and repository structure.
-- Identified Listing and Review models, routes, validation, and error handling.
-- Confirmed the need to preserve Express Router refactoring.
-- Identified the destructive seed-script risk.
-
-### Task 2 — Startup and Testing Foundation
-
-- Separated application configuration from server startup.
-- Configured the Node.js built-in test runner.
-- Added automated application tests.
-- Added temporary MongoDB test setup.
-- Added Listing model CRUD tests.
-- Configured Supertest and MongoDB Memory Server.
-
-### Task 3 — Listing and Review Integration Tests
-
-- Added tests for Listing index, create, show, update, and delete routes.
-- Added validation tests for invalid listing input and review ratings.
-- Verified review creation and deletion update the Listing relationship.
-- Verified deleting a Listing also deletes associated Review records.
-- Updated the Review timestamp default.
-- Enabled Mongoose update validators.
-
-### Task 4 — Initial Authentication Foundation
-
-- Added the User model with password hashing and verification.
-- Added signup and login routes.
-- Added Guest, Host, and Admin role definitions.
-- Added signup input validation, duplicate email handling, and password length validation.
-- Prevented public signup from assigning the Admin role.
-- Added session configuration and authentication middleware.
-- Added signup and login EJS templates and navbar integration.
-
-### Task 5 — Initial REST API
-
-- Added `GET /api/health`.
-- Added `GET /api/listings`.
-- Added `GET /api/listings/:id`.
-- Added invalid ID handling with HTTP 400.
-- Added missing listing handling with HTTP 404.
-- Registered API routes in `app.js`.
-- Manually verified the endpoints.
-
-### Day 1 Verification
-
-- The reported automated test run passed 29 tests with 0 failures.
-- Initial API endpoints were manually verified.
-- Day 1 work was committed as part of the repository's existing history.
-
----
-
-## 5. Day 2 — Authentication, Authorization, and Review Security
-
-**Status: Completed and pushed to GitHub**
-
-### Task 1 — Role-Based Listing Authorization
-
-- Added `isHostOrAdmin` to `middleware/auth.js`.
-- Updated `routes/listing.js` to apply role-based access control to:
-  - `GET /listings/new`
-  - `POST /listings`
-- Guest users cannot create listings.
-- Host and Admin users are allowed to proceed through the role check.
-
-### Task 2 — Review Ownership
-
-- Added a required `author` reference to `models/reviews.js`.
-- Updated review creation in `routes/review.js` to associate a review with the logged-in user.
-- Protected review creation and deletion with `isLoggedIn`.
-- Added a check preventing users from deleting another user's review.
-- Added a safe guard for review documents with a missing author.
-- Review deletion removes both the Review record and its reference from the Listing.
-
-### Task 3 — Session Security
-
-- Updated signup session handling in `routes/user.js`.
-- Regenerates the session after successful user creation.
-- Sets the new session's `userId`.
-- Saves the session before redirecting to `/listings`.
-- Errors during session regeneration or saving are forwarded to error handling.
-
-### Task 4 — Automated Test Updates
-
-- Updated the integration-test user to use the Host role where listing creation is required.
-- Added a test confirming Guests cannot create listings.
-- Added a test confirming another logged-in user cannot delete someone else's review.
-- Updated review test data to include the required author reference.
-- Verified review creation, deletion, and Listing relationship cleanup.
-
-### Day 2 Verification
-
-- `npm test`: 31 tests passed, 0 failures, according to the recorded Day 2 result.
-- `git diff --check`: Passed with no output.
-- Reviewed the changed-file list and Git status.
-- Committed the changes.
-- Successfully pushed the commit to GitHub.
-
-### Day 2 Git Information
-
-- **Branch:** `main`
-- **Commit:** `c04f20e`
-- **Commit message:** `Add role-based listing access and review ownership`
-- **Remote:** `origin/main`
-- **Recorded final Git status:** Branch up to date with `origin/main`.
-- **Recorded working tree:** Clean.
-
-These Git details describe the recorded Day 2 state. They do not establish the current Git state after subsequent local modifications.
-
-### Day 2 Outcome
-
-Role-based listing access, review ownership checks, and signup session regeneration were implemented. The recorded automated test suite passed after these changes.
-
-**Note:** Passing tests verifies the tested scenarios, not every possible security edge case. Further security review is still useful.
-
----
-
-## 6. Day 3 — Bookable Units and Booking Foundation
-
-**Status: Completed for the current Day 3 scope; deployment risks remain.**
-
-### Task 1 — Unit Model and Validation Tests
-
-**Status: Completed.**
-
-- Created `models/unit.js`.
-- Added the Listing reference and Unit details.
-- Added validation for Unit name, capacity, and nightly price.
-- Added automatic timestamps.
-- Created `tests/unit.test.js`.
-- Tested valid Unit creation and important invalid-data cases.
-
-### Task 2 — Booking Model Design
-
-**Status: Completed.**
-
-- Created `models/booking.js`.
-- Added references to the guest User and bookable Unit.
-- Added check-in and check-out date fields.
-- Added total price and booking status.
-- Added validation for required fields, date ordering, non-negative price, and supported status values.
-- Created `tests/booking.test.js`.
-- Added tests for valid bookings and important invalid-data cases.
-
-### Task 3 — Booking Flow and Conflict Prevention
-
-**Status: Implemented and tested for the covered scenarios.**
-
-Implemented:
-
-- Added `routes/booking.js` for booking creation.
-- Validates booking request data and rejects past check-in dates.
-- Calculates the number of nights and derives the booking price from the Unit's nightly price.
-- Derives the guest identity from the authenticated session.
-- Checks Unit availability and detects overlapping active bookings.
-- Uses a MongoDB transaction and a shared Unit-document write to coordinate concurrent booking attempts.
-- Added route integration tests, including a simultaneous overlapping-booking test.
-
-**Verification completed:**
-
-- Full test suite: 76 passed, 0 failed, 0 cancelled.
-- Simultaneous overlapping-booking test: 10 reported repeated runs passed.
-- The concurrency test checks that only one of two simultaneous overlapping booking requests succeeds and that only one active overlapping booking remains.
-
-**Remaining risks and follow-up:**
-
-- Review transaction retry and error-handling behavior.
-- Verify transaction support in the intended deployment MongoDB configuration.
-- Continue reviewing date and time edge cases as the booking workflow grows.
-
-### Task 4 — Unit Management
-
-**Status: Completed and tested.**
-
-Implemented:
-
-- Added Unit management routes in `routes/unit.js`.
-- Registered routes in `app.js`.
-- Added Joi validation for Unit input.
-- Implemented Unit listing, creation, updating, and deletion endpoints.
-- Added authentication and Listing-owner authorization.
-- Added checks to ensure a Unit belongs to the requested Listing.
-- Prevented deletion of Units with booking history.
-- Added `tests/unit-routes.test.js`.
-- Verified the targeted Unit route tests.
-- Ran the full test suite after implementation.
-
-**Verification completed:**
-
-- Full test suite: 76 passed.
-- Failed tests: 0.
-- Cancelled tests: 0.
-
-### Day 3 Outcome
-
-- Unit Model and validation tests completed.
-- Booking Model and validation tests completed.
-- Unit management routes implemented and tested.
-- Booking creation and overlap prevention implemented and tested for the covered scenarios.
-- MongoDB transaction-based coordination tested using a temporary replica-set database.
-- Full test suite passed: 76/76 tests.
-- Simultaneous overlapping-booking test passed in 10 repeated runs.
-- `git diff --check` produced no errors in the reported check.
-
-**Remaining risks:** Production MongoDB transaction support and transaction retry/error handling still require review. These risks do not invalidate the reported local test results, but they must be addressed before treating production readiness as verified.
-
----
-
-## 7. Future Project Roadmap
-
-The following features remain part of the broader project roadmap. Their implementation status must be verified against the actual repository before work begins.
-
-### Booking and Inventory
-
-- Review transaction error handling and retry behavior.
-- Verify the intended deployment MongoDB configuration supports transactions.
-- Implement or complete booking retrieval and cancellation workflows as required.
-- Design parking reservations if required by the approved design.
-- Review date and time edge cases.
-- Ensure failed bookings do not leave inconsistent database relationships or records.
-
-### Reviews, Complaints, and Verification
-
-- Continue reviewing review authorization and edge cases.
-- Implement complaint workflows.
-- Implement admin verification workflows.
-- Define and implement Trust Score behavior.
-
-### Payments
-
-- Define trial payment workflows.
-- Keep live payment gateway integration out of scope unless explicitly approved.
-
-### Frontend and Final Integration
-
-- Plan React integration with the existing backend.
-- Preserve EJS functionality unless a migration is explicitly approved.
-- Test important end-to-end workflows.
-- Update setup instructions and project documentation.
-- Verify the final test suite and record actual results.
-
-The goal of approximately 75% project completion by Day 5 is a target, not a guarantee. Progress should be measured by verified functionality rather than the number of tasks marked complete.
-
----
-
-## 8. Current Git Notes
-
-- Last recorded branch: `main`.
-- Last recorded upstream: `origin/main`.
-- Last recorded clean commit: `c04f20e`.
-- Last recorded commit message: `Add role-based listing access and review ownership`.
-- Subsequent local modifications and new Unit/Booking files have been reported.
-- The latest reported Git status before the Day 3 commit process included modifications to existing files and new, untracked Booking/Unit files.
-- Before committing, inspect `git status --short` and review the staged changes.
-- Do not assume the Day 3 changes have been committed or pushed until the latest Git state is verified.
-- Avoid `git add .` without checking which files will be included.
-- Never commit `.env` files, credentials, or secrets.
-- Do not discard existing local modifications without reviewing them.
-- Latest specifically reported `git status --short`:
-   M middleware/auth.js
-   M tests/routes.test.js
-- These are the last reported changes, not a verified current Git status. Check the actual repository before committing, pushing, or discarding any changes.
----
-
-## 9. Session Handoff
-
-Day 1, Day 2, and the current Day 3 scope are recorded as completed. Follow-up risks and remaining project features are listed below.
-
-### Implemented and tested according to reported results
-
-- Express backend and EJS views.
-- MongoDB/Mongoose models for Users, Listings, Reviews, Units, and Bookings.
-- Session-based authentication and role-based listing authorization.
-- Review ownership checks.
-- `SESSION_SECRET` startup validation.
-- Unit and Booking model validation tests.
-- Booking creation route with request validation, IST past-date validation, session-derived guest identity, server-calculated total price, Unit availability checks, and overlapping-booking detection.
-- MongoDB transaction-based coordination using a write to the shared Unit document.
-- Integration test for simultaneous overlapping booking requests.
-- Unit management routes for listing, creation, updating, and deletion.
-- Unit management authorization and validation checks.
-- Protection against deleting Units with booking history.
-
-### Latest Reported Verification
-
-- Full test suite: 76 passed, 0 failed, 0 cancelled.
-- The latest reported full test run completed successfully.
-- The simultaneous overlapping-booking test passed in 10 repeated runs.
-- Test database cleanup completed successfully in the latest full test run.
-- `git diff --check` produced no errors in the latest reported check.
-
-### Remaining Risks and Unconfirmed Features
-
-- Review booking transaction retry and error-handling behavior.
-- Verify the intended deployment MongoDB configuration supports transactions.
-- Booking retrieval and cancellation workflows as required by the final design.
-- Parking reservations.
-- Complaints and admin verification.
-- Trust Score.
-- Trial payment workflows.
-- React integration and any planned JWT implementation.
-- Final Day 3 commit and push status must be checked from the actual repository.
-
-### Instructions for the Next Session
-
-1. Verify the current Git status and whether Day 3 changes have been committed and pushed.
-2. If the changes are still uncommitted, review the staged diff and ensure no secrets are included before committing.
-3. Verify the intended deployment MongoDB configuration supports transactions.
-4. Review transaction retry and error-handling behavior.
-5. Continue with the next approved project task only after reviewing its requirements.
-6. Preserve existing local modifications.
-7. Never commit credentials, `.env` files, or secrets.
-8. Day 4 has not started. Begin with a read-only repository audit and code inspection. Do not make code changes until the user explicitly approves the proposed changes.
-
-**Current stopping point:** Day 3 Unit Management and Booking Foundation are implemented and tested for the reported scenarios. The latest reported full test suite passed 76/76 tests, and the simultaneous overlapping-booking test passed in 10 reported repeated runs. Production MongoDB transaction support and transaction error handling remain to be reviewed. The final Day 3 Git commit and push status must be verified separately.
-
-**Day 4 has not started.** The agreed first step is a read-only repository audit. No Day 4 code changes have been approved or made.
-
-
-### Parking Reservations — In Progress
-
-Branch: `feature/parking-reservations`.
-
-Added property-specific numbered parking slots, parking reservation records, availability and independent hourly/daily reservation routes, guest reservation listing and cancellation, JSON request parsing, and transactional free-parking allocation during property booking. Added focused parking tests and property-booking integration tests. When no slot is available, property booking is not created until the guest explicitly chooses to continue without parking. Existing confirmed independent reservations are not overridden.
-
-**Verification pending:** run focused tests and `npm test` locally. Review slot inventory provisioning, transaction conflict handling, and cancellation policy before treating this feature as complete. Tests have not been executed in this environment.
-
-### Latest Update — Booking/Parking Lifecycle and OS Concept Lens
-
-**Branch:** `feature/parking-reservations`
-
-- Property-linked parking reservations now start as `Pending`, matching the parent property's `Pending` booking.
-- Added `PATCH /bookings/:id/cancel` for a logged-in guest to cancel their own future `Pending` or `Confirmed` booking.
-- Booking cancellation and cancellation of linked property parking reservations run in one MongoDB transaction. The shared Unit write coordinates cancellation with concurrent booking attempts.
-- Added integration coverage for parent/linked status consistency and parking-slot release after booking cancellation.
-- Added OS concept comments in the concurrency-sensitive booking and parking code/tests using the required labels: `OS CONCEPT` and `USE HERE`.
-- Added `docs/OS_CONCEPT_LENS.md` to catalogue where concurrency control, race-condition prevention, transaction atomicity, and atomic conditional updates are used.
-- These are database-backed concurrency controls in the Node.js app; they should not be described as custom OS mutexes/semaphores.
-
-**Verification status:** Changes have been committed to the feature branch through GitHub edits, but the updated test suite has not yet been run locally. Run `node --test tests/booking-routes.test.js`, `node --test tests/parking.test.js`, then `npm test`. Do not mark the lifecycle fix complete until those runs pass.
-
-### Complaints Module — Initial Backend Implementation
-
-**Branch:** `feature/complaints`
-
-- Added `models/complaint.js` with complainant, optional booking reference, category, subject, description, status, admin note, handler, and timestamps.
-- Added `routes/complaint.js` and mounted it at `/complaints`.
-- Authenticated users can submit complaints and view only their own complaints.
-- Optional booking references are accepted only when the booking belongs to the signed-in guest.
-- Admin-only routes list/filter complaints and update status with an internal note.
-- Added `tests/complaints.test.js` for authentication, input validation, booking ownership, complaint privacy, and admin authorization/status updates.
-
-**Verification pending:** The new complaint tests have been authored but not run in this environment. Run `NODE_ENV=test node --test tests/complaints.test.js`, then `npm test`. This is an initial backend slice; complaint UI and broader policy decisions are not included yet.
+- **Authentication:** session-based authentication and bcrypt password hashing
+- **Testing:** Node.js built-in test runner, Supertest and MongoDB Memory Server
+- **Roles:** Guest, Host, Admin
+- **React frontend:** planned, implementation/migration not confirmed
+- **JWT:** planned, not confirmed as implemented
+- **Live payment gateway/mobile app:** out of scope unless the project scope changes
+
+Working rules:
+1. Explain changes in simple Hinglish and work one task at a time.
+2. Inspect current code before changing it.
+3. Explain the goal, reason, files affected and tests before implementation.
+4. Preserve existing functionality and local changes.
+5. Never claim tests passed unless the result is available.
+6. Do not commit `.env`, credentials or secrets.
+7. Avoid destructive Git commands and review diffs before committing.
+8. Do not run a destructive seed script against data that must be preserved.
+9. Do not merge a feature branch into `main` without explicit user approval.
+10. Keep this document current when a milestone is verified.
+
+## Historical Notes
+
+- Day 1: repository audit, startup/testing foundation, Listing/Review tests, initial authentication and REST API were implemented.
+- Day 2: role-based listing access, review ownership checks and signup session regeneration were implemented.
+- Day 3: Unit model/management and Booking model/creation/concurrency foundation were implemented and tested for covered scenarios.
+- Parking Reservations: later implemented and merged into `main`.
+- Complaints: backend subsequently implemented on `feature/complaints`; current user-reported full test count is 103 passing.
+- Earlier sections of this document contained older test totals and statuses. Use the **Current Snapshot** and the seven-task statuses above for the latest progress.
