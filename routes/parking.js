@@ -166,7 +166,7 @@ router.patch("/reservations/:id/cancel", isLoggedIn, async (req, res, next) => {
                 startAt: { $gt: new Date() }
             },
             { $set: { status: "Cancelled" } },
-            { new: true, runValidators: true }
+            { returnDocument: 'after', runValidators: true }
         );
         if (!cancelled) {
             return res.status(409).json({ error: "Reservation can no longer be cancelled." });
