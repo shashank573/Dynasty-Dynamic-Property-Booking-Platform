@@ -268,8 +268,9 @@ test("Booking route integration tests", async (t) => {
                             "booking[checkOut]": "2026-11-23"
                         });
 
-                // OS - RACE CONDITION TEST:
-                // Dono booking requests ko ek saath start karte hain.
+                // OS CONCEPT: Race Condition / Concurrency
+                // USE HERE: Simultaneous requests compete for the same date range; the shared Unit write
+                // must allow only one transaction to create an active overlapping booking.
                 const responses = await Promise.all([
                     bookingRequest(agent),
                     bookingRequest(secondAgent)
@@ -306,7 +307,40 @@ test("Booking route integration tests", async (t) => {
             assert.ok(reservation);
             assert.equal(reservation.reservationType, "property");
             assert.equal(reservation.totalPrice, 0);
+            assert.equal(reservation.status, "Pending");
             assert.equal(reservation.booking.toString(), response.body.booking.id);
+        });
+
+        await t.test("cancelling a property booking also releases its linked parking reservation", async () => {
+            await Booking.deleteMany({});
+            await ParkingReservation.deleteMany({});
+            const slot = await Parking.findOne({ listing: listing._id });
+            const created = await agent.post("/bookings").type("form").send({
+                "booking[unit]": unit._id.toString(),
+                "booking[checkIn]": "2026-12-20",
+                "booking[checkOut]": "2026-12-23"
+            });
+            assert.equal(created.status, 201);
+
+            const before = await ParkingReservation.findOne({ booking: created.body.booking.id });
+            assert.ok(before);
+            assert.equal(before.status, "Pending");
+
+            const cancelled = await agent.patch(`/bookings/${created.body.booking.id}/cancel`);
+            assert.equal(cancelled.status, 200);
+            assert.equal(cancelled.body.booking.status, "Cancelled");
+            assert.equal(
+                (await ParkingReservation.findById(before._id)).status,
+                "Cancelled"
+            );
+
+            const availability = await agent.get("/parking/availability").query({
+                listingId: listing._id.toString(),
+                startAt: "2026-12-20T00:00:00Z",
+                endAt: "2026-12-23T00:00:00Z"
+            });
+            assert.equal(availability.status, 200);
+            assert.ok(availability.body.slots.some((availableSlot) => availableSlot._id === slot._id.toString()));
         });
 
         await t.test("asks guest before proceeding when parking is unavailable", async () => {
