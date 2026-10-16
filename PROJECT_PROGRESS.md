@@ -1,3 +1,135 @@
+# DynaStay — Current Progress & 7-Task Roadmap
+
+> **Current status updated:** 2026-10-16, based on the latest project conversation and user-reported test output. Older historical notes later in this document may describe earlier snapshots; this current-status section takes precedence wherever they conflict.
+
+## Current Snapshot
+
+- **Repository:** shashank573/Dynasty-Dynamic-Property-Booking-Platform
+- **Current working branch for ongoing Complaints work:** feature/complaints
+- **Parking Reservations:** merged into main via PR #2 (merge commit reported as 9f020923fd6b03c6de343329d49e3151cdb44131).
+- **Complaints:** backend implementation committed to feature/complaints; **not merged into main**.
+- **Latest user-reported full test run:** npm test — **103 passed, 0 failed, 0 cancelled, 0 skipped** (about 10.6 seconds).
+- **Latest user-reported focused Complaints run:** NODE_ENV=test node --test tests/complaints.test.js — **9 passed, 0 failed**.
+- These test results are user-reported from their local checkout; they are not an independent execution in this documentation update.
+- **No code changes or merges were made as part of this documentation update.**
+
+## 7 Major Tasks — Roadmap and Status
+
+### 1. Existing Backend & Booking Reliability
+**Status: Core implementation and current test coverage in place; further production-readiness review remains.**
+
+Completed / present:
+- Existing Express 5, Node.js, MongoDB/Mongoose, EJS, Joi and session-based authentication structure.
+- User signup/login, bcrypt password hashing, Guest/Host/Admin roles, and prevention of public Admin signup.
+- Session hardening, including session regeneration and SESSION_SECRET startup validation.
+- Listing and Unit management, validation, and ownership/role checks.
+- Booking model and creation route with server-side price calculation, date validation, availability checks, and overlapping-booking protection.
+- MongoDB transaction/shared-document coordination for concurrent booking attempts.
+- Booking cancellation route for eligible future bookings; linked parking reservation lifecycle is handled transactionally.
+- Review author ownership and deletion protections.
+- OS concept notes in docs/OS_CONCEPT_LENS.md for concurrency, race conditions, transaction atomicity, and conditional updates.
+
+Follow-up:
+- Review booking transaction retry/error handling and deployment MongoDB transaction support.
+- Audit date/time edge cases, error paths, and booking lifecycle policies.
+- Do not claim all production concurrency cases are proven merely because automated tests pass.
+
+### 2. Parking Reservations
+**Status: Implemented, tested locally according to reported results, and merged into main.**
+
+Completed:
+- Parking slot and reservation workflows, including independent hourly/daily reservations.
+- Availability checks, reservation listing/cancellation, overlap prevention, and concurrent reservation protection.
+- Property booking can coordinate parking allocation; if parking is unavailable, the guest is asked whether to continue without it.
+- Cancelling an eligible property booking also releases its linked parking reservation within a transaction.
+- Added focused parking and booking integration tests, including lifecycle and concurrency scenarios.
+- PR #2 merged into main.
+
+Latest reported verification:
+- NODE_ENV=test node --test tests/parking.test.js tests/booking-routes.test.js: 25 passed, 0 failed.
+- The later full npm test run reported 103 passed, 0 failed.
+
+Follow-up:
+- Confirm production MongoDB transaction configuration and review cancellation/slot inventory edge cases during the final security pass.
+
+### 3. Complaints
+**Status: Initial backend implemented and focused/full automated tests passing; frontend and broader policy review remain.**
+
+Implemented on feature/complaints:
+- models/complaint.js with complainant, optional booking reference, category, subject, description, status, admin note, handler and timestamps.
+- routes/complaint.js, mounted at /complaints.
+- Authenticated complaint submission and a user-only complaint history endpoint.
+- Optional booking reference is accepted only if the booking belongs to the logged-in guest.
+- Admin-only complaint queue with optional status filtering.
+- Admin-only status updates with an internal note and handler metadata.
+- tests/complaints.test.js covers login protection, validation, booking ownership, privacy, and admin authorization/status updates.
+
+Verification reported by the user:
+- Focused complaints suite: **9 passed, 0 failed**.
+- Full suite: **103 passed, 0 failed, 0 cancelled, 0 skipped**.
+
+Remaining:
+- Perform a security review of admin authorization, allowed status transitions, input validation, and information exposure.
+- Decide complaint workflow/policy edge cases.
+- Add complaint UI/frontend integration.
+- Keep the feature branch unmerged until the user explicitly approves merging.
+
+### 4. Admin Verification
+**Status: Not started.**
+
+Planned:
+- Inspect existing User/Host/property data models and current authorization rules before designing the feature.
+- Define what evidence a Host must submit and what exactly the Admin reviews.
+- Define verification states (for example: Pending, Approved, Rejected) and the permitted transitions.
+- Add admin-only review/decision routes and audit metadata.
+- Add model, route, authorization, validation and edge-case tests.
+- Do not implement until the requirements/design are reviewed and the user approves the change plan.
+
+### 5. Trust Score
+**Status: Not started.**
+
+Planned:
+- Agree on a transparent score definition before coding.
+- Identify reliable inputs (for example, completed stays, review signals, verified status, and upheld complaints) and how each affects the score.
+- Define bounds, missing-data behavior, update strategy, and abuse resistance.
+- Avoid using unverified allegations as automatic penalties.
+- Add calculation tests and explainable output.
+- Do not choose arbitrary weights without approval.
+
+### 6. Frontend Integration
+**Status: Pending; React was planned but implementation is not confirmed. Existing EJS interface must be preserved unless migration is approved.**
+
+Planned:
+- Audit the current EJS pages and available routes first.
+- Decide whether new features should initially use EJS or whether a React integration is explicitly desired.
+- Integrate parking, complaints, verification and Trust Score flows with suitable loading, validation, error and success states.
+- Ensure controls and pages reflect backend authorization and status.
+- Add or update end-to-end/integration tests.
+- Avoid starting a full frontend migration without a clear approved plan.
+
+### 7. Final Security, Testing & Documentation
+**Status: Not started as a final phase; continue targeted security checks while implementing each task.**
+
+Planned:
+- Run the full suite and focused suites after meaningful changes.
+- Review authentication, authorization, ownership checks, input validation, session configuration, secrets, error handling, and sensitive-data exposure.
+- Review transaction behavior and deployment configuration.
+- Check dependency/configuration and production setup.
+- Update setup instructions, API documentation, architecture notes and PROJECT_PROGRESS.md.
+- Record only tests actually run and their real results.
+- Verify Git status and diffs; never commit secrets.
+- Run a final end-to-end smoke test and record remaining known risks.
+
+## Immediate Next Steps
+
+1. Keep working on feature/complaints; do not merge it into main without explicit approval.
+2. Perform the Complaints security review before adding UI or declaring the feature complete.
+3. Review the current repository implementation of Admin Verification requirements and propose a plan before editing code.
+4. Start Admin Verification only after the user approves the proposed plan.
+5. Keep the seven major tasks in this order unless the user changes priorities.
+
+---
+
 # DynaStay — Project Progress Tracker
 
 ## 1. Project Scope
