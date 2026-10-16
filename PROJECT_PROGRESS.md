@@ -550,3 +550,17 @@ Branch: `feature/parking-reservations`.
 Added property-specific numbered parking slots, parking reservation records, availability and independent hourly/daily reservation routes, guest reservation listing and cancellation, JSON request parsing, and transactional free-parking allocation during property booking. Added focused parking tests and property-booking integration tests. When no slot is available, property booking is not created until the guest explicitly chooses to continue without parking. Existing confirmed independent reservations are not overridden.
 
 **Verification pending:** run focused tests and `npm test` locally. Review slot inventory provisioning, transaction conflict handling, and cancellation policy before treating this feature as complete. Tests have not been executed in this environment.
+
+### Latest Update — Booking/Parking Lifecycle and OS Concept Lens
+
+**Branch:** `feature/parking-reservations`
+
+- Property-linked parking reservations now start as `Pending`, matching the parent property's `Pending` booking.
+- Added `PATCH /bookings/:id/cancel` for a logged-in guest to cancel their own future `Pending` or `Confirmed` booking.
+- Booking cancellation and cancellation of linked property parking reservations run in one MongoDB transaction. The shared Unit write coordinates cancellation with concurrent booking attempts.
+- Added integration coverage for parent/linked status consistency and parking-slot release after booking cancellation.
+- Added OS concept comments in the concurrency-sensitive booking and parking code/tests using the required labels: `OS CONCEPT` and `USE HERE`.
+- Added `docs/OS_CONCEPT_LENS.md` to catalogue where concurrency control, race-condition prevention, transaction atomicity, and atomic conditional updates are used.
+- These are database-backed concurrency controls in the Node.js app; they should not be described as custom OS mutexes/semaphores.
+
+**Verification status:** Changes have been committed to the feature branch through GitHub edits, but the updated test suite has not yet been run locally. Run `node --test tests/booking-routes.test.js`, `node --test tests/parking.test.js`, then `npm test`. Do not mark the lifecycle fix complete until those runs pass.
