@@ -51,6 +51,9 @@ router.post("/", isLoggedIn, validateBooking, wrapAsync(async (req, res) => {
     let parkingUnavailable = false;
 
     try {
+        // OS CONCEPT: Concurrency Control / Atomicity
+        // USE HERE: MongoDB transaction + shared Unit write coordinate competing booking attempts;
+        // booking and linked parking reservation either commit together or roll back together.
         await session.withTransaction(async () => {
             const unitWrite = await Unit.updateOne(
                 { _id: unitId }, { $inc: { bookingVersion: 1 } }, { session }
@@ -115,7 +118,7 @@ router.post("/", isLoggedIn, validateBooking, wrapAsync(async (req, res) => {
                     guest: req.session.userId, parking: assignedParking._id,
                     startAt: checkInDate, endAt: checkOutDate,
                     reservationType: "property", booking: booking._id,
-                    billingUnit: "free", totalPrice: 0, status: "Confirmed"
+                    billingUnit: "free", totalPrice: 0, status: "Pending"
                 }], { session });
                 assignedParking = { id: assignedParking._id, slotNumber: assignedParking.slotNumber, reservationId: reservation._id };
             }
@@ -142,6 +145,70 @@ router.post("/", isLoggedIn, validateBooking, wrapAsync(async (req, res) => {
             totalPrice: createdBooking.totalPrice, status: createdBooking.status
         },
         parking: assignedParking || null
+    });
+}));
+
+
+router.patch("/:id/cancel", isLoggedIn, wrapAsync(async (req, res) => {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+        throw new ExpressError(400, "Invalid booking ID.");
+    }
+
+    const session = await mongoose.startSession();
+    let cancelledBooking;
+
+    try {
+        // OS CONCEPT: Atomicity + Race Condition Prevention
+        // USE HERE: One transaction updates the booking and its linked parking record,
+        // preventing partial status changes during concurrent requests.
+        await session.withTransaction(async () => {
+            const booking = await Booking.findOneAndUpdate(
+                {
+                    _id: req.params.id,
+                    guest: req.session.userId,
+                    status: { $in: ["Pending", "Confirmed"] },
+                    checkIn: { $gt: new Date() }
+                },
+                { $set: { status: "Cancelled" } },
+                { new: true, runValidators: true, session }
+            );
+
+            if (!booking) {
+                const error = new Error("Booking not found or it can no longer be cancelled.");
+                error.statusCode = 409;
+                throw error;
+            }
+
+            await ParkingReservation.updateMany(
+                {
+                    booking: booking._id,
+                    reservationType: "property",
+                    status: { $in: ["Pending", "Confirmed"] }
+                },
+                { $set: { status: "Cancelled" } },
+                { session }
+            );
+
+            // Shared Unit write coordinates cancellation with concurrent booking attempts.
+            await Unit.updateOne(
+                { _id: booking.unit },
+                { $inc: { bookingVersion: 1 } },
+                { session }
+            );
+            cancelledBooking = booking;
+        });
+    } catch (error) {
+        if (error.statusCode === 409) {
+            return res.status(409).json({ error: error.message });
+        }
+        throw error;
+    } finally {
+        await session.endSession();
+    }
+
+    return res.status(200).json({
+        message: "Booking and linked parking reservation cancelled.",
+        booking: cancelledBooking
     });
 }));
 
