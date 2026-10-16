@@ -294,6 +294,43 @@ test("Booking route integration tests", async (t) => {
         );
 
 
+        await t.test("does not assign a parking slot deactivated during selection", async () => {
+            await Booking.deleteMany({});
+            await ParkingReservation.deleteMany({});
+            const slot = await Parking.create({
+                listing: listing._id, slotNumber: "RACE-01",
+                pricePerHour: 0, pricePerDay: 0, isActive: true
+            });
+
+            const originalUpdateOne = Parking.updateOne;
+            Parking.updateOne = async function (filter, update, options) {
+                if (filter._id && filter.isActive === true) {
+                    // Simulate inventory becoming inactive after the active-slot query.
+                    await originalUpdateOne.call(
+                        Parking, { _id: filter._id },
+                        { $set: { isActive: false } }, options
+                    );
+                }
+                return originalUpdateOne.call(Parking, filter, update, options);
+            };
+
+            let response;
+            try {
+                response = await agent.post("/bookings").type("form").send({
+                    "booking[unit]": unit._id.toString(),
+                    "booking[checkIn]": "2026-12-20",
+                    "booking[checkOut]": "2026-12-23"
+                });
+            } finally {
+                Parking.updateOne = originalUpdateOne;
+            }
+
+            assert.equal(response.status, 409);
+            assert.equal(response.body.requiresParkingChoice, true);
+            assert.equal(await ParkingReservation.countDocuments({ parking: slot._id }), 0);
+            assert.equal(await Booking.countDocuments({ unit: unit._id }), 0);
+        });
+
         await t.test("automatically assigns free parking with a property booking", async () => {
             await Booking.deleteMany({});
             await ParkingReservation.deleteMany({});
