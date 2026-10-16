@@ -18,11 +18,13 @@ const reviews = require("./routes/review.js");
 const users = require("./routes/user.js");
 const bookings = require("./routes/booking.js");
 const units = require("./routes/unit.js");
+const parking = require("./routes/parking.js");
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
 app.use(express.urlencoded({extended: true}));
+app.use(express.json());
 
 const sessionOptions = {
     secret: process.env.SESSION_SECRET,
@@ -126,6 +128,9 @@ app.use("/", users);
 
 // BOOKINGS
 app.use("/bookings", bookings);
+
+// PARKING
+app.use("/parking", parking);
 
 app.all("/{*splat}", (req, res, next) => {
     next(new ExpressError(404, "page not found"));
