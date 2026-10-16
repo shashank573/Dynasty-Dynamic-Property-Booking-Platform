@@ -89,7 +89,9 @@ router.post("/", isLoggedIn, validateBooking, wrapAsync(async (req, res) => {
                     }
                 }
 
-                if (!assignedParking) {
+                // If no parking inventory is configured, preserve existing booking behavior.
+                // Ask for a choice only when slots exist but all are unavailable.
+                if (!assignedParking && slots.length > 0) {
                     if (parkingChoice === "with") {
                         throw new ExpressError(409, "Parking is no longer available. Choose to continue without parking or cancel.");
                     }
