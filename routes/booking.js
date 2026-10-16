@@ -175,7 +175,7 @@ router.patch("/:id/cancel", isLoggedIn, wrapAsync(async (req, res) => {
                     checkIn: { $gt: new Date() }
                 },
                 { $set: { status: "Cancelled" } },
-                { new: true, runValidators: true, session }
+                { returnDocument: 'after', runValidators: true, session }
             );
 
             if (!booking) {
