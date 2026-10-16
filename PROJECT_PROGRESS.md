@@ -541,3 +541,12 @@ Day 1, Day 2, and the current Day 3 scope are recorded as completed. Follow-up r
 **Current stopping point:** Day 3 Unit Management and Booking Foundation are implemented and tested for the reported scenarios. The latest reported full test suite passed 76/76 tests, and the simultaneous overlapping-booking test passed in 10 reported repeated runs. Production MongoDB transaction support and transaction error handling remain to be reviewed. The final Day 3 Git commit and push status must be verified separately.
 
 **Day 4 has not started.** The agreed first step is a read-only repository audit. No Day 4 code changes have been approved or made.
+
+
+### Parking Reservations — In Progress
+
+Branch: `feature/parking-reservations`.
+
+Added property-specific numbered parking slots, parking reservation records, availability and independent hourly/daily reservation routes, guest reservation listing and cancellation, JSON request parsing, and transactional free-parking allocation during property booking. Added focused parking tests and property-booking integration tests. When no slot is available, property booking is not created until the guest explicitly chooses to continue without parking. Existing confirmed independent reservations are not overridden.
+
+**Verification pending:** run focused tests and `npm test` locally. Review slot inventory provisioning, transaction conflict handling, and cancellation policy before treating this feature as complete. Tests have not been executed in this environment.
