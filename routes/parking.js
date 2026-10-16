@@ -4,7 +4,7 @@ const router = express.Router();
 const Parking = require("../models/parking");
 const ParkingReservation = require("../models/parkingReservation");
 const Listing = require("../models/listing");
-const { isLoggedIn } = require("../middleware/auth");
+const { isLoggedIn, isOwner } = require("../middleware/auth");
 
 const activeStatuses = ["Pending", "Confirmed"];
 
@@ -15,6 +15,33 @@ function parseRange(startAt, endAt) {
         Number.isNaN(end.getTime()) || end <= start) return null;
     return { start, end };
 }
+
+// Listing owners manage their own numbered parking inventory.
+router.post("/listings/:id/slots", isLoggedIn, isOwner, async (req, res, next) => {
+    try {
+        const { slotNumber, pricePerHour = 0, pricePerDay = 0 } = req.body || {};
+        if (typeof slotNumber !== "string" || !slotNumber.trim() ||
+            !Number.isFinite(Number(pricePerHour)) || Number(pricePerHour) < 0 ||
+            !Number.isFinite(Number(pricePerDay)) || Number(pricePerDay) < 0) {
+            return res.status(400).json({ error: "slotNumber and non-negative hourly/daily prices are required." });
+        }
+        const slot = await Parking.create({
+            listing: req.params.id, slotNumber: slotNumber.trim(),
+            pricePerHour: Number(pricePerHour), pricePerDay: Number(pricePerDay)
+        });
+        return res.status(201).json({ message: "Parking slot created.", slot });
+    } catch (error) {
+        if (error.code === 11000) return res.status(409).json({ error: "That slot number already exists for this property." });
+        next(error);
+    }
+});
+
+router.get("/listings/:id/slots", isLoggedIn, isOwner, async (req, res, next) => {
+    try {
+        const slots = await Parking.find({ listing: req.params.id }).sort({ slotNumber: 1 });
+        return res.status(200).json({ slots });
+    } catch (error) { next(error); }
+});
 
 router.get("/availability", isLoggedIn, async (req, res, next) => {
     try {
