@@ -117,7 +117,7 @@ test("Parking reservation route integration tests", async (t) => {
         });
 
         await t.test("calculates daily billing on the server", async () => {
-            const response = await agent.post("/parking/reservations").send({ listingId: listing._id.toString(), parkingId: slot._id.toString(), startAt: "2026-11-12T10:00:00Z", endAt: "2026-11-13T11:00:00Z", billingUnit: "day" });
+            const response = await agent.post("/parking/reservations").send({ listingId: listing._id.toString(), parkingId: slot._id.toString(), startAt: "2026-11-17T10:00:00Z", endAt: "2026-11-18T11:00:00Z", billingUnit: "day" });
             assert.equal(response.status, 201);
             assert.equal(response.body.reservation.totalPrice, 300);
             assert.equal(response.body.reservation.billingUnit, "day");
