@@ -564,3 +564,16 @@ Added property-specific numbered parking slots, parking reservation records, ava
 - These are database-backed concurrency controls in the Node.js app; they should not be described as custom OS mutexes/semaphores.
 
 **Verification status:** Changes have been committed to the feature branch through GitHub edits, but the updated test suite has not yet been run locally. Run `node --test tests/booking-routes.test.js`, `node --test tests/parking.test.js`, then `npm test`. Do not mark the lifecycle fix complete until those runs pass.
+
+### Complaints Module — Initial Backend Implementation
+
+**Branch:** `feature/complaints`
+
+- Added `models/complaint.js` with complainant, optional booking reference, category, subject, description, status, admin note, handler, and timestamps.
+- Added `routes/complaint.js` and mounted it at `/complaints`.
+- Authenticated users can submit complaints and view only their own complaints.
+- Optional booking references are accepted only when the booking belongs to the signed-in guest.
+- Admin-only routes list/filter complaints and update status with an internal note.
+- Added `tests/complaints.test.js` for authentication, input validation, booking ownership, complaint privacy, and admin authorization/status updates.
+
+**Verification pending:** The new complaint tests have been authored but not run in this environment. Run `NODE_ENV=test node --test tests/complaints.test.js`, then `npm test`. This is an initial backend slice; complaint UI and broader policy decisions are not included yet.
