@@ -3,7 +3,7 @@
   <div><h1 class="h3 mb-1">My complaints</h1><p class="text-muted mb-0">Only complaints submitted by your account appear here.</p></div>
   <a class="btn btn-primary" href="/complaints/new"><i class="fa-solid fa-plus me-1"></i> New complaint</a>
 </div>
-<% if (typeof query !== "undefined" && query.submitted) { %><div class="alert alert-success" role="status">Your complaint was submitted successfully.</div><% } %>
+<% if (typeof submitted !== "undefined" && submitted) { %><div class="alert alert-success" role="status">Your complaint was submitted successfully.</div><% } %>
 <% if (!complaints.length) { %>
   <div class="card card-body text-center py-5 mb-4"><h2 class="h5">No complaints yet</h2><p class="text-muted">If you need help with a stay or booking, submit a complaint and track its status here.</p><div><a class="btn btn-primary" href="/complaints/new">Submit a complaint</a></div></div>
 <% } else { %>
