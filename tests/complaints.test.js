@@ -53,6 +53,26 @@ test("Complaint route integration tests", async (t) => {
         assert.equal((await login(otherAgent, otherGuest.email)).status, 302);
         assert.equal((await login(adminAgent, admin.email)).status, 302);
 
+        await t.test("renders complaint submission, private history, and admin EJS pages with role checks", async () => {
+            const newPage = await guestAgent.get("/complaints/new");
+            assert.equal(newPage.status, 200);
+            assert.match(newPage.text, /Submit a complaint/);
+            assert.match(newPage.text, /complaint-form/);
+            assert.match(newPage.text, /My complaints/);
+
+            const minePage = await guestAgent.get("/complaints/my");
+            assert.equal(minePage.status, 200);
+            assert.match(minePage.text, /No complaints yet/);
+
+            const forbiddenAdminPage = await guestAgent.get("/complaints/admin-dashboard");
+            assert.equal(forbiddenAdminPage.status, 403);
+
+            const adminPage = await adminAgent.get("/complaints/admin-dashboard");
+            assert.equal(adminPage.status, 200);
+            assert.match(adminPage.text, /Complaint administration/);
+            assert.match(adminPage.text, /admin-status-form/);
+        });
+
         await t.test("requires login to submit a complaint", async () => {
             const response = await request(app).post("/complaints").send({
                 category: "Booking", subject: "Booking issue", description: "I need help with my booking."
