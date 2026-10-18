@@ -9,7 +9,7 @@ const Unit = require("../models/unit.js");
 const Booking = require("../models/booking.js");
 const Parking = require("../models/parking.js");
 const ParkingReservation = require("../models/parkingReservation.js");
-const { isLoggedIn } = require("../middleware/auth.js");
+const { isLoggedIn, isGuest } = require("../middleware/auth.js");
 
 function validateBooking(req, res, next) {
     const { error } = bookingSchema.validate(req.body);
@@ -30,7 +30,20 @@ function parseDateOnly(value) {
     return new Date(Date.UTC(year, month - 1, day));
 }
 
-router.post("/", isLoggedIn, validateBooking, wrapAsync(async (req, res) => {
+// Guest dashboard: property/unit bookings plus independent parking reservations.
+router.get("/", isLoggedIn, isGuest, wrapAsync(async (req, res) => {
+    const [bookings, parkingReservations] = await Promise.all([
+        Booking.find({ guest: req.session.userId })
+            .populate({ path: "unit", select: "name listing", populate: { path: "listing", select: "title location" } })
+            .sort({ createdAt: -1 }),
+        ParkingReservation.find({ guest: req.session.userId })
+            .populate({ path: "parking", select: "slotNumber listing", populate: { path: "listing", select: "title location" } })
+            .sort({ createdAt: -1 })
+    ]);
+    res.render("bookings/index.ejs", { bookings, parkingReservations });
+}));
+
+router.post("/", isLoggedIn, isGuest, validateBooking, wrapAsync(async (req, res) => {
     const { unit: unitId, checkIn, checkOut, parkingChoice } = req.body.booking;
     if (parkingChoice && !["with", "without", "cancel"].includes(parkingChoice)) {
         throw new ExpressError(400, "Invalid parking choice.");
@@ -154,7 +167,7 @@ router.post("/", isLoggedIn, validateBooking, wrapAsync(async (req, res) => {
 }));
 
 
-router.patch("/:id/cancel", isLoggedIn, wrapAsync(async (req, res) => {
+router.patch("/:id/cancel", isLoggedIn, isGuest, wrapAsync(async (req, res) => {
     if (!mongoose.isValidObjectId(req.params.id)) {
         throw new ExpressError(400, "Invalid booking ID.");
     }
