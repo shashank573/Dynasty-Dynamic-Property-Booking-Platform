@@ -133,6 +133,8 @@ test("Complaint route integration tests", async (t) => {
             assert.equal(edit.status, 409);
             const deletion = await guestAgent.delete("/complaints/" + reviewedComplaint._id);
             assert.equal(deletion.status, 409);
+            // Keep the shared fixture clean for the following tests' complaint counts.
+            await reviewedComplaint.deleteOne();
         });
 
         await t.test("does not allow linking another guest's booking", async () => {
