@@ -4,6 +4,8 @@ const wrapAsync = require("../utils/wrapAsync.js");
 const ExpressError = require("../utils/ExpressError.js");
 const { listingSchema } = require("../schema.js");
 const Listing = require("../models/listing.js");
+const Unit = require("../models/unit.js");
+const Parking = require("../models/parking.js");
 const { isLoggedIn, isOwner, isHostOrAdmin } = require("../middleware/auth.js");
 
 // MIDDLEWARE : VALIDATE FOR SCHEMA
@@ -18,40 +20,19 @@ const validateListing = (req, res, next) => {
     }
 };
 
-//INDEX ROUTE
+// INDEX ROUTE
 router.get("/", wrapAsync(async (req, res) => {
     const allListings = await Listing.find();
-    // console.log(allListings);
     res.render("listings/index.ejs", {allListings});
 }));
 
-
-//GET & CREATE ROUTE
-    // NEW GET 
+// GET & CREATE ROUTE
 router.get("/new", isLoggedIn, isHostOrAdmin, (req, res) => {
     res.render("listings/newListing.ejs");
 });
 
-    // CREATE - POST
+// CREATE - POST
 router.post("/", isLoggedIn, isHostOrAdmin, validateListing, wrapAsync(async (req, res, next) => {
-    // let {title, description, image, price, location, country} = req.body;
-   
-    // let newListing = new Listing({
-    //     title: title,
-    //     description: description,
-    //     image: image,
-    //     price: price,
-    //     location: location,
-    //     country: country,
-    // });
-
-    // let result = listingSchema.validate(req.body); // checks req.body kya validate ho pa rahi hai un sare validations sejo schema mai define kre hai joi ke 
-    // console.log(result);
-
-    // if(result.error){
-    //     throw new ExpressError(400, result.error);
-    // }
-
     const newListing = new Listing(req.body.listing);
     
     newListing.owner = req.session.userId;
@@ -61,24 +42,36 @@ router.post("/", isLoggedIn, isHostOrAdmin, validateListing, wrapAsync(async (re
 }));
 
 
+// Owner-only UI for managing individual units and parking slots.
+router.get("/:id/inventory", isLoggedIn, isOwner, wrapAsync(async (req, res) => {
+    const listing = await Listing.findById(req.params.id);
+    const [units, parkingSlots] = await Promise.all([
+        Unit.find({ listing: listing._id }).sort({ createdAt: -1 }),
+        Parking.find({ listing: listing._id }).sort({ slotNumber: 1 })
+    ]);
+    res.render("listings/inventory.ejs", { listing, units, parkingSlots });
+}));
+
 //SHOW ROUTE
 router.get("/:id", wrapAsync(async (req, res) => {
     let {id} = req.params;
     const listing = await Listing.findById(id).populate("reviews");
-    res.render("listings/show.ejs", {listing});
+    if (!listing) throw new ExpressError(404, "Listing not found.");
+    const [units, parkingSlots] = await Promise.all([
+        Unit.find({ listing: id, isAvailable: true }).sort({ pricePerNight: 1 }),
+        Parking.find({ listing: id, isActive: true }).select("slotNumber pricePerHour pricePerDay").sort({ slotNumber: 1 })
+    ]);
+    res.render("listings/show.ejs", { listing, units, parkingSlots });
 }));
 
-
-
-// EDIT AND UPDATE ROUTE 
-    // GET
+// EDIT AND UPDATE ROUTE
 router.get("/:id/edit", isLoggedIn, isOwner, wrapAsync(async (req, res) => {
     let {id} = req.params;
     let listing = await Listing.findById(id);
     res.render("listings/edit.ejs", {listing});
 }));
 
-    // PUT
+// PUT
 router.put("/:id", isLoggedIn, isOwner, validateListing, wrapAsync(async (req, res) => {
     let {id} = req.params;
 
@@ -93,8 +86,6 @@ router.put("/:id", isLoggedIn, isOwner, validateListing, wrapAsync(async (req, r
     res.redirect(`/listings/${id}`);
 }));
 
-
-
 // DELETE ROUTE
 router.delete("/:id", isLoggedIn, isOwner, wrapAsync(async (req, res) => {
     let {id} = req.params;
@@ -102,6 +93,5 @@ router.delete("/:id", isLoggedIn, isOwner, wrapAsync(async (req, res) => {
 
     res.redirect("/listings");
 }));
-
 
 module.exports = router;
