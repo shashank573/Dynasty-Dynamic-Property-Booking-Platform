@@ -6,7 +6,7 @@
 ## Current Snapshot
 
 - **Repository:** `shashank573/Dynasty-Dynamic-Property-Booking-Platform`
-- **Feature branch:** `feature/complaints`
+- **Current feature branch:** `feature/complaint-ejs-ui` (EJS complaint interface integration pending review)
 - **Parking Reservations:** merged into `main` through PR #2.
 - **Complaints backend:** merged into `main` through PR #3 (squash merge commit `2cc497f705a59425958d2582c44f9a22e80ac499`).
 - **Latest user-reported full test run:** `npm test` — **107 passed, 0 failed, 0 cancelled, 0 skipped, 0 todo** (about 11.4 seconds).
@@ -54,7 +54,7 @@ Remaining:
 - Review inventory provisioning, cancellation edge cases and transaction error handling during final security review.
 
 ### 3. Complaints
-**Status: Backend implementation and controlled reopen workflow merged into `main` through PR #3. Frontend integration is pending.**
+**Status: Backend and controlled reopen workflow merged through PR #3; EJS frontend integration implemented on `feature/complaint-ejs-ui` and awaiting review/testing.**
 
 Implemented:
 - `models/complaint.js`: complainant, optional booking reference, category, subject, description, status, admin note, handler metadata and timestamps.
@@ -75,7 +75,8 @@ Latest user-reported verification:
 
 Remaining:
 - Review admin authorization, input validation, information exposure and concurrency/race behavior around complaint status changes.
-- Add complaint frontend/UI integration.
+- Run `npm test` on the branch and review the new EJS page-render/role-access tests.
+- Perform browser-level end-to-end testing of complaint submission, privacy, admin transitions and reopening; automated HTTP tests do not execute browser JavaScript.
 - Smoke-test complaint flows in the deployed application after deployment.
 - PR #3 must be reviewed before merge; do not describe it as merged until GitHub confirms the merge.
 
@@ -127,11 +128,11 @@ Planned:
 
 ## Immediate Next Steps
 
-1. Plan and implement complaint UI integration, preserving the current EJS interface unless a migration is approved.
-2. Add complaint UI integration while preserving the current EJS interface unless a migration is approved.
+1. Run and review the full test suite for `feature/complaint-ejs-ui`.
+2. Perform browser-level end-to-end testing of complaint submission, user privacy, admin status transitions and reopening.
 3. Before implementing Admin Verification, inspect the current repository and propose the design/file changes for approval.
 4. Continue with the seven-task roadmap unless priorities change.
-5. After deployment, smoke-test complaint submission, user privacy, admin status transitions and the explicit reopen flow.
+5. After deployment, smoke-test complaint flows in the deployed application.
 
 ## Project Stack and Working Rules
 
