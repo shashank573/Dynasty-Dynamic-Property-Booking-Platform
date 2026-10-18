@@ -4,6 +4,8 @@ const wrapAsync = require("../utils/wrapAsync.js");
 const ExpressError = require("../utils/ExpressError.js");
 const { listingSchema } = require("../schema.js");
 const Listing = require("../models/listing.js");
+const Unit = require("../models/unit.js");
+const Parking = require("../models/parking.js");
 const { isLoggedIn, isOwner, isHostOrAdmin } = require("../middleware/auth.js");
 
 // MIDDLEWARE : VALIDATE FOR SCHEMA
@@ -39,11 +41,27 @@ router.post("/", isLoggedIn, isHostOrAdmin, validateListing, wrapAsync(async (re
     res.redirect("/listings");
 }));
 
-// SHOW ROUTE
+
+// Owner-only UI for managing individual units and parking slots.
+router.get("/:id/inventory", isLoggedIn, isOwner, wrapAsync(async (req, res) => {
+    const listing = await Listing.findById(req.params.id);
+    const [units, parkingSlots] = await Promise.all([
+        Unit.find({ listing: listing._id }).sort({ createdAt: -1 }),
+        Parking.find({ listing: listing._id }).sort({ slotNumber: 1 })
+    ]);
+    res.render("listings/inventory.ejs", { listing, units, parkingSlots });
+}));
+
+//SHOW ROUTE
 router.get("/:id", wrapAsync(async (req, res) => {
     let {id} = req.params;
     const listing = await Listing.findById(id).populate("reviews");
-    res.render("listings/show.ejs", {listing});
+    if (!listing) throw new ExpressError(404, "Listing not found.");
+    const [units, parkingSlots] = await Promise.all([
+        Unit.find({ listing: id, isAvailable: true }).sort({ pricePerNight: 1 }),
+        Parking.find({ listing: id, isActive: true }).select("slotNumber pricePerHour pricePerDay").sort({ slotNumber: 1 })
+    ]);
+    res.render("listings/show.ejs", { listing, units, parkingSlots });
 }));
 
 // EDIT AND UPDATE ROUTE

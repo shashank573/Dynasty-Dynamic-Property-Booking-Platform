@@ -1,0 +1,91 @@
+<% layout("/layouts/boilerplate") %>
+<div class="row py-4">
+  <div class="col-lg-8 mx-auto">
+    <a href="/listings" class="text-decoration-none">&larr; Browse properties</a>
+    <h1 class="mt-3">Standalone parking reservation</h1>
+    <p class="text-muted">Reserve parking without booking a room. Prices and availability are verified by the server.</p>
+    <div class="card shadow-sm"><div class="card-body">
+      <form id="parking-form" class="row g-3">
+        <div class="col-12">
+          <label class="form-label" for="parking-listing">Property</label>
+          <select class="form-select" id="parking-listing" required>
+            <option value="">Choose a property</option>
+            <% listings.forEach(listing => { %>
+              <option value="<%= listing._id %>"><%= listing.title %> — <%= listing.location %>, <%= listing.country %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="col-md-6"><label class="form-label" for="parking-start">Start</label><input class="form-control" type="datetime-local" id="parking-start" required></div>
+        <div class="col-md-6"><label class="form-label" for="parking-end">End</label><input class="form-control" type="datetime-local" id="parking-end" required></div>
+        <div class="col-md-6">
+          <label class="form-label" for="billing-unit">Billing</label>
+          <select class="form-select" id="billing-unit"><option value="hour">Hourly</option><option value="day">Daily</option></select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="parking-slot">Slot</label>
+          <select class="form-select" id="parking-slot"><option value="">Any available slot</option></select>
+          <div class="form-text">Slot list updates when you check availability.</div>
+        </div>
+        <div class="col-12 d-flex gap-2 flex-wrap">
+          <button class="btn btn-outline-dark" type="button" id="check-parking">Check availability</button>
+          <button class="btn btn-dark" type="submit">Reserve parking</button>
+        </div>
+      </form>
+      <div id="parking-message" class="mt-3" role="status" aria-live="polite"></div>
+    </div></div>
+    <p class="mt-3"><a href="/bookings">View My Bookings</a></p>
+  </div>
+</div>
+<script>
+(() => {
+  const form = document.getElementById("parking-form");
+  const message = document.getElementById("parking-message");
+  const slotSelect = document.getElementById("parking-slot");
+  const localDateTime = date => new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0,16);
+  const now = new Date();
+  document.getElementById("parking-start").min = localDateTime(now);
+  document.getElementById("parking-end").min = localDateTime(now);
+  document.getElementById("parking-start").addEventListener("change", e => document.getElementById("parking-end").min = e.target.value);
+  async function checkAvailability() {
+    const listingId = document.getElementById("parking-listing").value;
+    const startAt = document.getElementById("parking-start").value;
+    const endAt = document.getElementById("parking-end").value;
+    if (!listingId || !startAt || !endAt || new Date(endAt) <= new Date(startAt)) {
+      throw new Error("Choose a property and a valid start/end time first.");
+    }
+    const response = await fetch("/parking/availability?" + new URLSearchParams({ listingId, startAt: new Date(startAt).toISOString(), endAt: new Date(endAt).toISOString() }));
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Could not check availability.");
+    slotSelect.innerHTML = '<option value="">Any available slot</option>';
+    data.slots.forEach(slot => {
+      const option = document.createElement("option");
+      option.value = slot._id;
+      option.textContent = slot.slotNumber + " · ₹" + slot.pricePerHour + "/hour · ₹" + slot.pricePerDay + "/day";
+      slotSelect.appendChild(option);
+    });
+    message.className = "mt-3 alert " + (data.slots.length ? "alert-success" : "alert-warning");
+    message.textContent = data.slots.length ? data.slots.length + " slot(s) available." : "No slots are available for this time range.";
+    return data.slots.length > 0;
+  }
+  document.getElementById("check-parking").addEventListener("click", async () => {
+    try { await checkAvailability(); } catch (error) { message.className = "mt-3 alert alert-danger"; message.textContent = error.message; }
+  });
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    try {
+      if (!await checkAvailability()) return;
+      const listingId = document.getElementById("parking-listing").value;
+      const startAt = new Date(document.getElementById("parking-start").value).toISOString();
+      const endAt = new Date(document.getElementById("parking-end").value).toISOString();
+      const body = { listingId, startAt, endAt, billingUnit: document.getElementById("billing-unit").value };
+      if (slotSelect.value) body.parkingId = slotSelect.value;
+      const response = await fetch("/parking/reservations", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Reservation failed.");
+      message.className = "mt-3 alert alert-success";
+      message.textContent = "Parking reserved. Server-calculated total: ₹" + Number(data.reservation.totalPrice).toLocaleString("en-IN");
+      setTimeout(() => { window.location.href = "/bookings"; }, 900);
+    } catch (error) { message.className = "mt-3 alert alert-danger"; message.textContent = error.message; }
+  });
+})();
+</script>
