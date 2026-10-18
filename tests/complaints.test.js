@@ -109,23 +109,30 @@ test("Complaint route integration tests", async (t) => {
             const page = await adminAgent.get("/complaints/admin-dashboard");
             assert.equal(page.status, 200);
 
-            const openCard = page.text.split('data-id="' + complaintId + '"')[1];
-            assert.ok(openCard);
+            const cardFor = id => {
+                const marker = page.text.indexOf('data-id="' + id + '"');
+                assert.notEqual(marker, -1);
+                const start = page.text.lastIndexOf('<article class="card shadow-sm">', marker);
+                const end = page.text.indexOf("</article>", marker);
+                assert.notEqual(start, -1);
+                assert.notEqual(end, -1);
+                return page.text.slice(start, end);
+            };
+
+            const openCard = cardFor(complaintId);
             assert.match(openCard, /<option value="Open" selected>Open<\/option>/);
             assert.match(openCard, /<option value="In Review">In Review<\/option>/);
-            assert.doesNotMatch(openCard.split("</form>")[0], /<option value="Resolved">|<option value="Rejected">/);
+            assert.doesNotMatch(openCard, /<option value="Resolved">|<option value="Rejected">/);
 
-            const reviewCard = page.text.split('data-id="' + inReviewComplaint._id + '"')[1];
-            assert.ok(reviewCard);
+            const reviewCard = cardFor(inReviewComplaint._id);
             assert.match(reviewCard, /<option value="In Review" selected>In Review<\/option>/);
             assert.match(reviewCard, /<option value="Resolved">Resolved<\/option>/);
             assert.match(reviewCard, /<option value="Rejected">Rejected<\/option>/);
-            assert.doesNotMatch(reviewCard.split("</form>")[0], /<option value="Open">/);
+            assert.doesNotMatch(reviewCard, /<option value="Open">/);
 
-            const closedCard = page.text.split('data-id="' + closedComplaint._id + '"')[1];
-            assert.ok(closedCard);
+            const closedCard = cardFor(closedComplaint._id);
             assert.match(closedCard, /admin-reopen-form/);
-            assert.doesNotMatch(closedCard.split("</article>")[0], /admin-status-form/);
+            assert.doesNotMatch(closedCard, /admin-status-form/);
         });
 
         await t.test("complainants can edit and delete only their own open complaints", async () => {
