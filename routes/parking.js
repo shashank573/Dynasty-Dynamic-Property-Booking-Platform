@@ -4,9 +4,16 @@ const router = express.Router();
 const Parking = require("../models/parking");
 const ParkingReservation = require("../models/parkingReservation");
 const Listing = require("../models/listing");
-const { isLoggedIn, isOwner } = require("../middleware/auth");
+const { isLoggedIn, isOwner, isGuest } = require("../middleware/auth");
 
 const activeStatuses = ["Pending", "Confirmed"];
+
+router.get("/", isLoggedIn, isGuest, async (req, res, next) => {
+    try {
+        const listings = await Listing.find().select("title location country").sort({ title: 1 });
+        res.render("parking/index.ejs", { listings });
+    } catch (error) { next(error); }
+});
 
 function parseRange(startAt, endAt) {
     const start = new Date(startAt);
@@ -43,7 +50,7 @@ router.get("/listings/:id/slots", isLoggedIn, isOwner, async (req, res, next) =>
     } catch (error) { next(error); }
 });
 
-router.get("/availability", isLoggedIn, async (req, res, next) => {
+router.get("/availability", isLoggedIn, isGuest, async (req, res, next) => {
     try {
         const range = parseRange(req.query.startAt, req.query.endAt);
         if (!mongoose.isValidObjectId(req.query.listingId) || !range) {
@@ -62,7 +69,7 @@ router.get("/availability", isLoggedIn, async (req, res, next) => {
     } catch (error) { next(error); }
 });
 
-router.post("/reservations", isLoggedIn, async (req, res, next) => {
+router.post("/reservations", isLoggedIn, isGuest, async (req, res, next) => {
     const session = await mongoose.startSession();
     try {
         const { listingId, startAt, endAt, billingUnit = "hour", parkingId } = req.body;
@@ -127,7 +134,7 @@ router.post("/reservations", isLoggedIn, async (req, res, next) => {
     }
 });
 
-router.get("/reservations/mine", isLoggedIn, async (req, res, next) => {
+router.get("/reservations/mine", isLoggedIn, isGuest, async (req, res, next) => {
     try {
         const reservations = await ParkingReservation.find({ guest: req.session.userId })
             .populate("parking", "listing slotNumber").sort({ createdAt: -1 });
@@ -135,7 +142,7 @@ router.get("/reservations/mine", isLoggedIn, async (req, res, next) => {
     } catch (error) { next(error); }
 });
 
-router.patch("/reservations/:id/cancel", isLoggedIn, async (req, res, next) => {
+router.patch("/reservations/:id/cancel", isLoggedIn, isGuest, async (req, res, next) => {
     try {
         if (!mongoose.isValidObjectId(req.params.id)) {
             return res.status(400).json({ error: "Invalid reservation ID." });
