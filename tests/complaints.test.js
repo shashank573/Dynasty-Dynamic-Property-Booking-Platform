@@ -94,6 +94,43 @@ test("Complaint route integration tests", async (t) => {
             complaintId = response.body.complaint._id;
         });
 
+        await t.test("complainants can edit and delete only their own open complaints", async () => {
+            const edit = await guestAgent.patch("/complaints/" + complaintId).send({
+                category: "Payment", subject: "Updated payment issue", description: "Updated details for the payment problem."
+            });
+            assert.equal(edit.status, 200);
+            assert.equal(edit.body.success, true);
+
+            const otherUserEdit = await otherAgent.patch("/complaints/" + complaintId).send({
+                category: "Other", subject: "Trying to edit", description: "This should not be allowed."
+            });
+            assert.equal(otherUserEdit.status, 404);
+            const invalidEdit = await guestAgent.patch("/complaints/" + complaintId).send({
+                category: "Unknown", subject: "bad", description: "short"
+            });
+            assert.equal(invalidEdit.status, 400);
+            const deleteAttemptByOther = await otherAgent.delete("/complaints/" + complaintId);
+            assert.equal(deleteAttemptByOther.status, 404);
+            const deleteOpen = await guestAgent.delete("/complaints/" + complaintId);
+            assert.equal(deleteOpen.status, 200);
+            assert.equal(await Complaint.findById(complaintId), null);
+        });
+
+        await t.test("complaints cannot be edited or deleted after review starts", async () => {
+            const reviewedComplaint = await Complaint.create({
+                complainant: guest._id, category: "Other", subject: "Reviewed complaint",
+                description: "This complaint has entered review."
+            });
+            reviewedComplaint.status = "In Review";
+            await reviewedComplaint.save();
+            const edit = await guestAgent.patch("/complaints/" + reviewedComplaint._id).send({
+                category: "Other", subject: "Changed complaint", description: "Trying to change reviewed details."
+            });
+            assert.equal(edit.status, 409);
+            const deletion = await guestAgent.delete("/complaints/" + reviewedComplaint._id);
+            assert.equal(deletion.status, 409);
+        });
+
         await t.test("does not allow linking another guest's booking", async () => {
             const response = await otherAgent.post("/complaints").send({
                 category: "Booking", subject: "Booking issue", description: "I need help with my booking.",
