@@ -189,7 +189,7 @@ router.get("/my", isLoggedIn, wrapAsync(async (req, res) => {
         .select("-adminNote -handledBy -handledAt -reopenHistory")
         .populate("booking", "checkIn checkOut status")
         .sort({ createdAt: -1 });
-    return res.render("complaints/mine.ejs", { complaints });
+    return res.render("complaints/mine.ejs", { complaints, submitted: req.query.submitted === "1" });
 }));
 
 router.get("/admin-dashboard", isLoggedIn, isAdmin, wrapAsync(async (req, res) => {
