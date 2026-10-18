@@ -12,6 +12,10 @@
       </div>
     </div>
 
+    <% if (currentUser && ["Host", "Admin"].includes(currentUser.role) && listing.owner && listing.owner.toString() === currentUser._id.toString()) { %>
+      <div class="mt-3"><a class="btn btn-outline-dark" href="/listings/<%= listing._id %>/inventory">Manage units & parking</a></div>
+    <% } %>
+
     <% if (currentUser && currentUser.role === "Guest") { %>
       <section class="card mt-4">
         <div class="card-body">

@@ -63,6 +63,16 @@ router.post("/", isLoggedIn, isHostOrAdmin, validateListing, wrapAsync(async (re
 }));
 
 
+// Owner-only UI for managing individual units and parking slots.
+router.get("/:id/inventory", isLoggedIn, isOwner, wrapAsync(async (req, res) => {
+    const listing = await Listing.findById(req.params.id);
+    const [units, parkingSlots] = await Promise.all([
+        Unit.find({ listing: listing._id }).sort({ createdAt: -1 }),
+        Parking.find({ listing: listing._id }).sort({ slotNumber: 1 })
+    ]);
+    res.render("listings/inventory.ejs", { listing, units, parkingSlots });
+}));
+
 //SHOW ROUTE
 router.get("/:id", wrapAsync(async (req, res) => {
     let {id} = req.params;
