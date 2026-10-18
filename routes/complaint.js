@@ -56,6 +56,7 @@ router.post("/", isLoggedIn, wrapAsync(async (req, res) => {
 // Users can view only their own complaints.
 router.get("/mine", isLoggedIn, wrapAsync(async (req, res) => {
     const complaints = await Complaint.find({ complainant: req.session.userId })
+        .select("-adminNote -handledBy -handledAt")
         .populate("booking", "checkIn checkOut status")
         .sort({ createdAt: -1 });
     return res.status(200).json({ success: true, count: complaints.length, complaints });
