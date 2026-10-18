@@ -84,16 +84,19 @@ router.patch("/:id/status", isLoggedIn, isAdmin, wrapAsync(async (req, res) => {
     if (!mongoose.isValidObjectId(req.params.id)) {
         return res.status(400).json({ success: false, message: "Invalid complaint ID." });
     }
-    const { status, adminNote = "" } = req.body || {};
+    const { status, adminNote } = req.body || {};
     if (!statuses.includes(status) ||
-        typeof adminNote !== "string" || adminNote.trim().length > 2000) {
+        (adminNote !== undefined &&
+            (typeof adminNote !== "string" || adminNote.trim().length > 2000))) {
         return res.status(400).json({ success: false, message: "Provide a valid status and an admin note of at most 2000 characters." });
     }
     const complaint = await Complaint.findById(req.params.id);
     if (!complaint) return res.status(404).json({ success: false, message: "Complaint not found." });
 
     complaint.status = status;
-    complaint.adminNote = adminNote.trim();
+    if (adminNote !== undefined) {
+        complaint.adminNote = adminNote.trim();
+    }
     complaint.handledBy = req.session.userId;
     complaint.handledAt = new Date();
     await complaint.save();
