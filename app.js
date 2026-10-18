@@ -68,36 +68,17 @@ app.use(async (req, res, next) => {
     }
 });
 
-
 app.use(methodOverride("_method"));
 app.use(express.static(path.join(__dirname, "public")));
 
 app.engine("ejs", ejsMate);
-
 
 // ROOT ROUTE
 app.get("/", (req, res) => {
     res.redirect("/listings");
 });
 
-// app.get("/testListing", async (req, res) => {
-//     let sampleListing = new Listing({
-//         title:" My Home",
-//         description: "By the beach",
-//         price: 1200,
-//         location: "Calangute, Goa",
-//         country: "India",
-//     });
-
-//     await sampleListing.save().then((res) => {
-//         console.log(res);
-//     }).catch((err)=>console.log(err));
-
-//     res.send("Successful Testing!");
-// });
-
 app.use("/api", apiRoutes);
-
 
 // API health check
 app.get("/api/health", (req, res) => {
@@ -112,19 +93,17 @@ app.get("/api/health", (req, res) => {
     });
 });
 
-
 // CRUD ROUTES
+// LISTINGS
+app.use("/listings", listings);
 
-//LISTINGS
-app.use("/listings", listings);//router 
-
-//UNITS
+// UNITS
 app.use("/listings/:id/units", units);
 
 // REVIEWS
-app.use("/listings/:id/reviews", reviews);//router 
+app.use("/listings/:id/reviews", reviews);
 
-//USERS
+// USERS
 app.use("/", users);
 
 // BOOKINGS
@@ -144,8 +123,6 @@ app.use((err, req, res, next) => {
     let {statusCode = 500, message = "Something Went Wrong!"} = err;
 
     res.status(statusCode).render("listings/error.ejs",{err});
-    // res.status(statusCode).send(message);
-    // next(err);
 });
 
 module.exports = app;
