@@ -1,63 +1,132 @@
 <% layout("/layouts/boilerplate") %>
-<div class="row mt-3">
-    <div class="col-8 offset-3">
-        <h3><%= listing.title%></h3>
+<div class="row mt-4 mb-5">
+  <div class="col-lg-8 mx-auto">
+    <a class="text-decoration-none" href="/listings">&larr; All stays</a>
+    <div class="card shadow-sm mt-3">
+      <img src="<%= listing.image %>" class="card-img-top" style="max-height:380px;object-fit:cover" alt="<%= listing.title %>">
+      <div class="card-body">
+        <h2><%= listing.title %></h2>
+        <p class="text-muted mb-2"><i class="fa-solid fa-location-dot"></i> <%= listing.location %>, <%= listing.country %></p>
+        <p><%= listing.description %></p>
+        <p class="fw-semibold">Listed price: ₹<%= Number(listing.price || 0).toLocaleString("en-IN") %></p>
+      </div>
     </div>
 
-    <div class="card col-6 offset-3 show-card listing-card">
-        <img src="<%= listing.image %>" class="card-img-top show-img" alt="listing_image">
+    <% if (currentUser && currentUser.role === "Guest") { %>
+      <section class="card mt-4">
         <div class="card-body">
-            <p class="card-text">
-                <%= listing.description%> <br>
-                &#8377; <%= listing.price.toLocaleString("en-IN")%> <br>
-                <%= listing.location%> <br>
-                <%= listing.country%>
-            </p>
+          <h3>Book a unit in this property</h3>
+          <p class="text-muted">Choose a specific unit and dates. The final price is calculated on the server.</p>
+          <% if (units.length) { %>
+            <form id="property-booking-form" class="row g-3">
+              <div class="col-12">
+                <label class="form-label" for="booking-unit">Available unit</label>
+                <select class="form-select" id="booking-unit" required>
+                  <% units.forEach(unit => { %>
+                    <option value="<%= unit._id %>"><%= unit.name %> · capacity <%= unit.capacity %> · ₹<%= Number(unit.pricePerNight).toLocaleString("en-IN") %>/night</option>
+                  <% }) %>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="check-in">Check-in</label>
+                <input class="form-control" type="date" id="check-in" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label" for="check-out">Check-out</label>
+                <input class="form-control" type="date" id="check-out" required>
+              </div>
+              <div class="col-12">
+                <label class="form-label" for="parking-choice">Parking with this booking</label>
+                <select class="form-select" id="parking-choice" required>
+                  <option value="without">No, continue without parking</option>
+                  <option value="with">Yes, include one available parking slot (free)</option>
+                </select>
+                <div class="form-text">If the selected slot becomes unavailable, the property booking will not be created until you choose again.</div>
+              </div>
+              <div class="col-12"><button class="btn btn-dark" type="submit">Book unit</button></div>
+            </form>
+            <div id="property-booking-message" class="mt-3" role="status" aria-live="polite"></div>
+          <% } else { %>
+            <p class="mb-0">No bookable units are currently listed for this property. Please check again later.</p>
+          <% } %>
+          <hr>
+          <h4>Need parking only?</h4>
+          <p>Reserve a parking slot independently, without booking a stay.</p>
+          <a class="btn btn-outline-dark" href="/parking">Book standalone parking</a>
+          <a class="btn btn-outline-secondary ms-2" href="/bookings">My bookings</a>
         </div>
-    </div>
-    
+      </section>
+    <% } else if (!currentUser) { %>
+      <div class="alert alert-info mt-4">Please <a href="/login">log in</a> with a Guest account to book a unit or parking.</div>
+    <% } else { %>
+      <div class="alert alert-secondary mt-4">Booking is available to Guest accounts. Host/Admin accounts can manage inventory.</div>
+    <% } %>
 
-    <br>
-    <div class="btns">
-        <a href="/listings/<%=listing._id%>/edit" class="btn btn-dark edit-btn col-1 offset-3">Edit</a>
-        <form method="POST" action="/listings/<%=listing._id%>?_method=DELETE">
-            <button class="btn btn-dark offset-5">Delete</button>
+    <section class="mt-5">
+      <h3>Reviews</h3>
+      <% if (currentUser && currentUser.role === "Guest") { %>
+        <form action="/listings/<%= listing._id %>/reviews" method="POST" class="card card-body mb-3">
+          <label class="form-label" for="review-rating">Rating</label>
+          <input class="form-range" type="range" min="1" max="5" id="review-rating" name="review[rating]" value="5">
+          <label class="form-label" for="review-comment">Comment</label>
+          <textarea class="form-control mb-3" id="review-comment" name="review[comment]" rows="3" required></textarea>
+          <button class="btn btn-outline-dark align-self-start">Submit review</button>
         </form>
-    </div>
-
-    <div class="col-8 offset-3 mb-3">
-        <hr>
-        <h4>Leave a Review</h4>
-        <form action="/listings/<%= listing.id %>/reviews" method="POST" novalidate class="needs-validation">
-            <div class="mb-3 mt-3" >
-                <label for="rating" class="form-label">Rating</label>
-                <input type="range" min="1" max="5" id="rating" name="review[rating]" class="form-range">
-            </div>
-            <div class="mb-3 mt-3">
-                <label for="comment" class="form-label">Comments</label>
-                <textarea id="rating" name="review[comment]" cols="30" rows="5" class="form-control" required></textarea>
-                
-                <div class="invalid-feedback">Please Add Some Comments For Review</div>
-            </div>
-            <button class="btn btn-outline-dark">Submit</button>
-        </form>
-
-        <hr>
-
-        <p><b>ALL REVIEWS</b></p>
-        <div class="row">
-            <% for(review of listing.reviews) { %>
-                <div class="card col-5 ms-3 mb-3">
-                    <div class="card-body">
-                        <h5 class="card-title">Jane Doe</h5>
-                        <p class="card-text"><%= review.comment %></p>
-                        <p class="card-text"><%= review.rating %> stars</p>
-                    </div>
-                    <form class="mb-3" method="POST" action="/listings/<%= listing._id %>/reviews/<%= review._id %>?_method=DELETE">
-                        <button class="btn btn-sm btn-dark">Delete</button>
-                    </form>
-                </div>
-            <% } %>
+      <% } %>
+      <% if (listing.reviews && listing.reviews.length) { %>
+        <div class="row g-3">
+          <% listing.reviews.forEach(review => { %>
+            <div class="col-md-6"><div class="card h-100"><div class="card-body">
+              <p class="mb-2"><%= review.comment %></p>
+              <span class="badge text-bg-light"><%= review.rating %> / 5 stars</span>
+            </div></div></div>
+          <% }) %>
         </div>
-    </div>
+      <% } else { %><p class="text-muted">No reviews yet.</p><% } %>
+    </section>
+  </div>
 </div>
+
+<script>
+(() => {
+  const form = document.getElementById("property-booking-form");
+  if (!form) return;
+  const message = document.getElementById("property-booking-message");
+  const today = new Date();
+  const localDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  document.getElementById("check-in").min = localDate;
+  document.getElementById("check-out").min = localDate;
+  document.getElementById("check-in").addEventListener("change", event => {
+    document.getElementById("check-out").min = event.target.value || localDate;
+  });
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    message.className = "mt-3";
+    message.textContent = "Checking availability…";
+    const payload = { booking: {
+      unit: document.getElementById("booking-unit").value,
+      checkIn: document.getElementById("check-in").value,
+      checkOut: document.getElementById("check-out").value,
+      parkingChoice: document.getElementById("parking-choice").value
+    }};
+    try {
+      const response = await fetch("/bookings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const data = await response.json();
+      if (!response.ok) {
+        if (data.requiresParkingChoice) {
+          message.textContent = data.message + " Please choose 'No parking' and submit again, or cancel.";
+        } else throw new Error(data.error || data.message || "Booking failed.");
+        message.classList.add("alert", "alert-warning");
+        return;
+      }
+      message.textContent = data.message + " Total: ₹" + Number(data.booking.totalPrice).toLocaleString("en-IN");
+      message.classList.add("alert", "alert-success");
+      form.reset();
+      setTimeout(() => { window.location.href = "/bookings"; }, 900);
+    } catch (error) {
+      message.textContent = error.message;
+      message.classList.add("alert", "alert-danger");
+    }
+  });
+})();
+</script>
