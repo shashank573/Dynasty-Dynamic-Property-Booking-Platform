@@ -230,4 +230,11 @@ router.patch("/:id/cancel", isLoggedIn, isGuest, wrapAsync(async (req, res) => {
     });
 }));
 
+// These routes expose JSON endpoints; keep validation/conflict errors consumable by the booking UI.
+router.use((err, req, res, next) => {
+    if (res.headersSent) return next(err);
+    const statusCode = err.statusCode || err.status || 500;
+    return res.status(statusCode).json({ error: err.message || "Something went wrong." });
+});
+
 module.exports = router;
