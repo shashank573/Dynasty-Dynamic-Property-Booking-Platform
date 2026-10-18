@@ -95,25 +95,29 @@ test("Complaint route integration tests", async (t) => {
         });
 
         await t.test("complainants can edit and delete only their own open complaints", async () => {
-            const edit = await guestAgent.patch("/complaints/" + complaintId).send({
+            const editableComplaint = await Complaint.create({
+                complainant: guest._id, category: "Booking", subject: "Editable complaint",
+                description: "This complaint is available for editing."
+            });
+            const edit = await guestAgent.patch("/complaints/" + editableComplaint._id).send({
                 category: "Payment", subject: "Updated payment issue", description: "Updated details for the payment problem."
             });
             assert.equal(edit.status, 200);
             assert.equal(edit.body.success, true);
 
-            const otherUserEdit = await otherAgent.patch("/complaints/" + complaintId).send({
+            const otherUserEdit = await otherAgent.patch("/complaints/" + editableComplaint._id).send({
                 category: "Other", subject: "Trying to edit", description: "This should not be allowed."
             });
             assert.equal(otherUserEdit.status, 404);
-            const invalidEdit = await guestAgent.patch("/complaints/" + complaintId).send({
+            const invalidEdit = await guestAgent.patch("/complaints/" + editableComplaint._id).send({
                 category: "Unknown", subject: "bad", description: "short"
             });
             assert.equal(invalidEdit.status, 400);
-            const deleteAttemptByOther = await otherAgent.delete("/complaints/" + complaintId);
+            const deleteAttemptByOther = await otherAgent.delete("/complaints/" + editableComplaint._id);
             assert.equal(deleteAttemptByOther.status, 404);
-            const deleteOpen = await guestAgent.delete("/complaints/" + complaintId);
+            const deleteOpen = await guestAgent.delete("/complaints/" + editableComplaint._id);
             assert.equal(deleteOpen.status, 200);
-            assert.equal(await Complaint.findById(complaintId), null);
+            assert.equal(await Complaint.findById(editableComplaint._id), null);
         });
 
         await t.test("complaints cannot be edited or deleted after review starts", async () => {
