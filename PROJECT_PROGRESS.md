@@ -9,8 +9,8 @@
 - **Current feature branch:** `feature/complaint-ejs-ui` (EJS complaint interface integration pending review)
 - **Parking Reservations:** merged into `main` through PR #2.
 - **Complaints backend:** merged into `main` through PR #3 (squash merge commit `2cc497f705a59425958d2582c44f9a22e80ac499`).
-- **Latest user-reported full test run:** `npm test` — **107 passed, 0 failed, 0 cancelled, 0 skipped, 0 todo** (about 11.4 seconds).
-- The full-suite result above was reported from the user's local checkout; it was not rerun by this documentation update.
+- **Latest user-reported full test run before the latest PR review fixes:** `npm test` — **111 passed, 0 failed, 0 cancelled, 0 skipped, 0 todo** (about 10.7 seconds).
+- The user ran this test suite locally at commit `7faaced`. Additional PR review changes were subsequently pushed, including a new complaint UI transition test; rerun `npm test` before treating the current branch as verified.
 - Deployment behavior has not been verified in this update.
 
 ## 7 Major Tasks — Status and Remaining Work
@@ -78,7 +78,7 @@ Remaining:
 - Run `npm test` on the branch and review the new EJS page-render/role-access tests.
 - Perform browser-level end-to-end testing of complaint submission, privacy, admin transitions and reopening; automated HTTP tests do not execute browser JavaScript.
 - Smoke-test complaint flows in the deployed application after deployment.
-- PR #3 must be reviewed before merge; do not describe it as merged until GitHub confirms the merge.
+- PR #3 was previously merged into `main`; PR #4 remains open until GitHub confirms otherwise.
 
 ### 4. Admin Verification
 **Status: Not started.**
@@ -128,10 +128,10 @@ Planned:
 
 ## Immediate Next Steps
 
-1. Run and review the full test suite for `feature/complaint-ejs-ui`.
+1. Run and review the full test suite for `feature/complaint-ejs-ui` after the latest review fixes.
 2. Perform browser-level end-to-end testing of complaint submission, user privacy, admin status transitions and reopening.
-3. Before implementing Admin Verification, inspect the current repository and propose the design/file changes for approval.
-4. Continue with the seven-task roadmap unless priorities change.
+3. Confirm PR #4 mergeability after the duplicate case-conflicting progress file is removed and the admin status controls are aligned with backend transitions.
+4. Before implementing Admin Verification or Trust Score, inspect the current repository and propose the design/file changes and scoring rules for approval.
 5. After deployment, smoke-test complaint flows in the deployed application.
 
 ## Project Stack and Working Rules
