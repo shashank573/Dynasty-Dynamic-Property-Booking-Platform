@@ -56,7 +56,7 @@ router.post("/", isLoggedIn, wrapAsync(async (req, res) => {
 // Users can view only their own complaints.
 router.get("/mine", isLoggedIn, wrapAsync(async (req, res) => {
     const complaints = await Complaint.find({ complainant: req.session.userId })
-        .select("-adminNote -handledBy -handledAt")
+        .select("-adminNote -handledBy -handledAt -reopenHistory")
         .populate("booking", "checkIn checkOut status")
         .sort({ createdAt: -1 });
     return res.status(200).json({ success: true, count: complaints.length, complaints });
@@ -93,6 +93,22 @@ router.patch("/:id/status", isLoggedIn, isAdmin, wrapAsync(async (req, res) => {
     const complaint = await Complaint.findById(req.params.id);
     if (!complaint) return res.status(404).json({ success: false, message: "Complaint not found." });
 
+    const allowedTransitions = {
+        "Open": ["In Review"],
+        "In Review": ["Resolved", "Rejected"]
+    };
+
+    if (
+        complaint.status !== status &&
+        (!allowedTransitions[complaint.status] ||
+            !allowedTransitions[complaint.status].includes(status))
+    ) {
+        return res.status(409).json({
+            success: false,
+            message: "Invalid status transition. Closed complaints must be explicitly reopened."
+        });
+    }
+
     complaint.status = status;
     if (adminNote !== undefined) {
         complaint.adminNote = adminNote.trim();
@@ -102,6 +118,61 @@ router.patch("/:id/status", isLoggedIn, isAdmin, wrapAsync(async (req, res) => {
     await complaint.save();
 
     return res.status(200).json({ success: true, message: "Complaint updated.", complaint });
+}));
+
+
+// Admin can explicitly reopen a resolved or rejected complaint.
+router.patch("/:id/reopen", isLoggedIn, isAdmin, wrapAsync(async (req, res) => {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid complaint ID."
+        });
+    }
+
+    const { reason } = req.body || {};
+    if (
+        typeof reason !== "string" ||
+        reason.trim().length < 10 ||
+        reason.trim().length > 1000
+    ) {
+        return res.status(400).json({
+            success: false,
+            message: "A reopen reason of 10–1000 characters is required."
+        });
+    }
+
+    const complaint = await Complaint.findById(req.params.id);
+    if (!complaint) {
+        return res.status(404).json({
+            success: false,
+            message: "Complaint not found."
+        });
+    }
+
+    if (!["Resolved", "Rejected"].includes(complaint.status)) {
+        return res.status(409).json({
+            success: false,
+            message: "Only resolved or rejected complaints can be reopened."
+        });
+    }
+
+    complaint.reopenHistory.push({
+        previousStatus: complaint.status,
+        reason: reason.trim(),
+        reopenedBy: req.session.userId,
+        reopenedAt: new Date()
+    });
+    complaint.status = "In Review";
+    complaint.handledBy = req.session.userId;
+    complaint.handledAt = new Date();
+    await complaint.save();
+
+    return res.status(200).json({
+        success: true,
+        message: "Complaint reopened for review.",
+        complaint
+    });
 }));
 
 module.exports = router;
