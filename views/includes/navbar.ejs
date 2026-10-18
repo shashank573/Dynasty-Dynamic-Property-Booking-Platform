@@ -21,6 +21,11 @@
         <a class="nav-link" href="/">Home</a>
         <a class="nav-link" href="/listings">All Listings</a>
         <a class="nav-link" href="/listings/new">Add new Listing</a>
+        <% if (currentUser) { %>
+          <a class="nav-link" href="/complaints/new">Submit complaint</a>
+          <a class="nav-link" href="/complaints/my">My complaints</a>
+          <% if (currentUser.role === "Admin") { %><a class="nav-link" href="/complaints/admin-dashboard">Complaint admin</a><% } %>
+        <% } %>
       </div>
 
       <div class="navbar-nav ms-auto">
