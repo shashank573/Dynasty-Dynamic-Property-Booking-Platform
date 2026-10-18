@@ -179,12 +179,13 @@ test("Complaint route integration tests", async (t) => {
         });
 
         await t.test("does not allow linking another guest's booking", async () => {
+            const complaintsBefore = await Complaint.countDocuments({});
             const response = await otherAgent.post("/complaints").send({
                 category: "Booking", subject: "Booking issue", description: "I need help with my booking.",
                 bookingId: booking._id.toString()
             });
             assert.equal(response.status, 404);
-            assert.equal(await Complaint.countDocuments({}), 1);
+            assert.equal(await Complaint.countDocuments({}), complaintsBefore);
         });
 
         await t.test("validates complaint input", async () => {
@@ -194,11 +195,13 @@ test("Complaint route integration tests", async (t) => {
             assert.equal(response.status, 400);
         });
 
+        let otherGuestComplaintId;
         await t.test("users can see only their own complaints and not internal admin fields", async () => {
-            await Complaint.create({
+            const otherGuestComplaint = await Complaint.create({
                 complainant: otherGuest._id, category: "Other",
                 subject: "Another user issue", description: "This belongs to another user."
             });
+            otherGuestComplaintId = otherGuestComplaint._id.toString();
             await Complaint.findByIdAndUpdate(complaintId, {
                 adminNote: "Private internal note",
                 handledBy: admin._id,
@@ -207,13 +210,22 @@ test("Complaint route integration tests", async (t) => {
 
             const response = await guestAgent.get("/complaints/mine");
             assert.equal(response.status, 200);
-            assert.equal(response.body.count, 1);
-            assert.equal(response.body.complaints[0].complainant._id, undefined);
-            assert.equal(response.body.complaints[0]._id, complaintId);
-            assert.equal(Object.hasOwn(response.body.complaints[0], "adminNote"), false);
-            assert.equal(Object.hasOwn(response.body.complaints[0], "handledBy"), false);
-            assert.equal(Object.hasOwn(response.body.complaints[0], "handledAt"), false);
-            assert.equal(Object.hasOwn(response.body.complaints[0], "reopenHistory"), false);
+
+            const ownComplaintIds = await Complaint.find({ complainant: guest._id }).distinct("_id");
+            const ownComplaintIdStrings = ownComplaintIds.map(id => id.toString());
+            const responseIds = response.body.complaints.map(item => item._id);
+
+            assert.equal(response.body.count, ownComplaintIds.length);
+            assert.ok(responseIds.includes(complaintId));
+            assert.ok(responseIds.every(id => ownComplaintIdStrings.includes(id)));
+            assert.ok(!responseIds.includes(otherGuestComplaintId));
+
+            for (const item of response.body.complaints) {
+                assert.equal(Object.hasOwn(item, "adminNote"), false);
+                assert.equal(Object.hasOwn(item, "handledBy"), false);
+                assert.equal(Object.hasOwn(item, "handledAt"), false);
+                assert.equal(Object.hasOwn(item, "reopenHistory"), false);
+            }
         });
 
         await t.test("blocks non-admin access to complaint queue", async () => {
