@@ -149,29 +149,33 @@ test("Complaint route integration tests", async (t) => {
         });
 
         await t.test("enforces the controlled status transition policy", async () => {
+            const policyComplaint = await Complaint.create({
+                complainant: guest._id, category: "Other",
+                subject: "Transition policy issue", description: "Testing complaint status transitions."
+            });
             const directResolve = await adminAgent
-                .patch("/complaints/" + complaintId + "/status")
+                .patch("/complaints/" + policyComplaint._id + "/status")
                 .send({ status: "Resolved" });
             assert.equal(directResolve.status, 409);
 
             const inReview = await adminAgent
-                .patch("/complaints/" + complaintId + "/status")
+                .patch("/complaints/" + policyComplaint._id + "/status")
                 .send({ status: "In Review" });
             assert.equal(inReview.status, 200);
 
             const resolved = await adminAgent
-                .patch("/complaints/" + complaintId + "/status")
+                .patch("/complaints/" + policyComplaint._id + "/status")
                 .send({ status: "Resolved" });
             assert.equal(resolved.status, 200);
             assert.equal(resolved.body.complaint.status, "Resolved");
 
             const directReopenViaStatus = await adminAgent
-                .patch("/complaints/" + complaintId + "/status")
+                .patch("/complaints/" + policyComplaint._id + "/status")
                 .send({ status: "In Review" });
             assert.equal(directReopenViaStatus.status, 409);
 
             const reopen = await adminAgent
-                .patch("/complaints/" + complaintId + "/reopen")
+                .patch("/complaints/" + policyComplaint._id + "/reopen")
                 .send({ reason: "Additional evidence needs another review." });
             assert.equal(reopen.status, 200);
             assert.equal(reopen.body.complaint.status, "In Review");
@@ -182,13 +186,13 @@ test("Complaint route integration tests", async (t) => {
             assert.ok(reopen.body.complaint.reopenHistory[0].reopenedAt);
 
             const rejected = await adminAgent
-                .patch("/complaints/" + complaintId + "/status")
+                .patch("/complaints/" + policyComplaint._id + "/status")
                 .send({ status: "Rejected" });
             assert.equal(rejected.status, 200);
             assert.equal(rejected.body.complaint.status, "Rejected");
 
             const reopenRejected = await adminAgent
-                .patch("/complaints/" + complaintId + "/reopen")
+                .patch("/complaints/" + policyComplaint._id + "/reopen")
                 .send({ reason: "The complainant supplied new supporting details." });
             assert.equal(reopenRejected.status, 200);
             assert.equal(reopenRejected.body.complaint.status, "In Review");
