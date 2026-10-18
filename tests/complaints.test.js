@@ -109,6 +109,7 @@ test("Complaint route integration tests", async (t) => {
             assert.equal(Object.hasOwn(response.body.complaints[0], "adminNote"), false);
             assert.equal(Object.hasOwn(response.body.complaints[0], "handledBy"), false);
             assert.equal(Object.hasOwn(response.body.complaints[0], "handledAt"), false);
+            assert.equal(Object.hasOwn(response.body.complaints[0], "reopenHistory"), false);
         });
 
         await t.test("blocks non-admin access to complaint queue", async () => {
@@ -145,6 +146,89 @@ test("Complaint route integration tests", async (t) => {
                 .send({ status: "In Review", adminNote: "" });
             assert.equal(noteCleared.status, 200);
             assert.equal(noteCleared.body.complaint.adminNote, "");
+        });
+
+        await t.test("enforces the controlled status transition policy", async () => {
+            const directResolve = await adminAgent
+                .patch("/complaints/" + complaintId + "/status")
+                .send({ status: "Resolved" });
+            assert.equal(directResolve.status, 409);
+
+            const inReview = await adminAgent
+                .patch("/complaints/" + complaintId + "/status")
+                .send({ status: "In Review" });
+            assert.equal(inReview.status, 200);
+
+            const resolved = await adminAgent
+                .patch("/complaints/" + complaintId + "/status")
+                .send({ status: "Resolved" });
+            assert.equal(resolved.status, 200);
+            assert.equal(resolved.body.complaint.status, "Resolved");
+
+            const directReopenViaStatus = await adminAgent
+                .patch("/complaints/" + complaintId + "/status")
+                .send({ status: "In Review" });
+            assert.equal(directReopenViaStatus.status, 409);
+
+            const reopen = await adminAgent
+                .patch("/complaints/" + complaintId + "/reopen")
+                .send({ reason: "Additional evidence needs another review." });
+            assert.equal(reopen.status, 200);
+            assert.equal(reopen.body.complaint.status, "In Review");
+            assert.equal(reopen.body.complaint.reopenHistory.length, 1);
+            assert.equal(reopen.body.complaint.reopenHistory[0].previousStatus, "Resolved");
+            assert.equal(reopen.body.complaint.reopenHistory[0].reason, "Additional evidence needs another review.");
+            assert.equal(reopen.body.complaint.reopenHistory[0].reopenedBy.toString(), admin._id.toString());
+            assert.ok(reopen.body.complaint.reopenHistory[0].reopenedAt);
+
+            const rejected = await adminAgent
+                .patch("/complaints/" + complaintId + "/status")
+                .send({ status: "Rejected" });
+            assert.equal(rejected.status, 200);
+            assert.equal(rejected.body.complaint.status, "Rejected");
+
+            const reopenRejected = await adminAgent
+                .patch("/complaints/" + complaintId + "/reopen")
+                .send({ reason: "The complainant supplied new supporting details." });
+            assert.equal(reopenRejected.status, 200);
+            assert.equal(reopenRejected.body.complaint.status, "In Review");
+            assert.equal(reopenRejected.body.complaint.reopenHistory.length, 2);
+            assert.equal(reopenRejected.body.complaint.reopenHistory[1].previousStatus, "Rejected");
+        });
+
+        await t.test("validates reopen reason, complaint existence, and current status", async () => {
+            for (const reason of [undefined, null, 123, {}, [], "too short"]) {
+                const response = await adminAgent
+                    .patch("/complaints/" + complaintId + "/reopen")
+                    .send({ reason });
+                assert.equal(response.status, 400);
+            }
+
+            const invalidId = await adminAgent
+                .patch("/complaints/not-a-valid-id/reopen")
+                .send({ reason: "A valid enough reason for reopening." });
+            assert.equal(invalidId.status, 400);
+
+            const missing = await adminAgent
+                .patch("/complaints/507f1f77bcf86cd799439011/reopen")
+                .send({ reason: "A valid enough reason for reopening." });
+            assert.equal(missing.status, 404);
+
+            const openComplaint = await Complaint.create({
+                complainant: guest._id, category: "Other",
+                subject: "Still open issue", description: "This complaint is still open."
+            });
+            const openReopen = await adminAgent
+                .patch("/complaints/" + openComplaint._id + "/reopen")
+                .send({ reason: "A valid enough reason for reopening." });
+            assert.equal(openReopen.status, 409);
+        });
+
+        await t.test("only admins can reopen complaints", async () => {
+            const response = await guestAgent
+                .patch("/complaints/" + complaintId + "/reopen")
+                .send({ reason: "A valid enough reason for reopening." });
+            assert.equal(response.status, 403);
         });
 
         await t.test("rejects malformed admin notes and invalid complaint IDs", async () => {
