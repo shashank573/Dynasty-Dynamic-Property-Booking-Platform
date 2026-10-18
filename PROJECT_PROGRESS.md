@@ -8,7 +8,7 @@
 - **Repository:** `shashank573/Dynasty-Dynamic-Property-Booking-Platform`
 - **Feature branch:** `feature/complaints`
 - **Parking Reservations:** merged into `main` through PR #2.
-- **Complaints backend:** implemented on `feature/complaints`; PR #3 is open and not yet merged into `main`.
+- **Complaints backend:** merged into `main` through PR #3 (squash merge commit `2cc497f705a59425958d2582c44f9a22e80ac499`).
 - **Latest user-reported full test run:** `npm test` — **107 passed, 0 failed, 0 cancelled, 0 skipped, 0 todo** (about 11.4 seconds).
 - The full-suite result above was reported from the user's local checkout; it was not rerun by this documentation update.
 - Deployment behavior has not been verified in this update.
@@ -54,7 +54,7 @@ Remaining:
 - Review inventory provisioning, cancellation edge cases and transaction error handling during final security review.
 
 ### 3. Complaints
-**Status: Backend implementation and controlled reopen workflow are on `feature/complaints`; PR #3 is awaiting merge. Frontend integration is pending.**
+**Status: Backend implementation and controlled reopen workflow merged into `main` through PR #3. Frontend integration is pending.**
 
 Implemented:
 - `models/complaint.js`: complainant, optional booking reference, category, subject, description, status, admin note, handler metadata and timestamps.
@@ -127,7 +127,7 @@ Planned:
 
 ## Immediate Next Steps
 
-1. Finish review of PR #3 and merge only after the diff is acceptable.
+1. Plan and implement complaint UI integration, preserving the current EJS interface unless a migration is approved.
 2. Add complaint UI integration while preserving the current EJS interface unless a migration is approved.
 3. Before implementing Admin Verification, inspect the current repository and propose the design/file changes for approval.
 4. Continue with the seven-task roadmap unless priorities change.
@@ -164,4 +164,4 @@ Working rules:
 - Day 2: role-based listing access, review ownership checks and signup session regeneration were implemented.
 - Day 3: Unit model/management and Booking model/creation/concurrency foundation were implemented and tested for covered scenarios.
 - Parking Reservations: implemented and merged into `main` through PR #2.
-- Complaints: backend and controlled reopen workflow implemented on `feature/complaints`; PR #3 is open pending review/merge.
+- Complaints: backend and controlled reopen workflow merged into `main` through PR #3.
