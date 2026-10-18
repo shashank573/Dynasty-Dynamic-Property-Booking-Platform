@@ -79,6 +79,33 @@ router.get("/", isLoggedIn, isAdmin, wrapAsync(async (req, res) => {
     return res.status(200).json({ success: true, count: complaints.length, complaints });
 }));
 
+// A complainant may edit or delete their own complaint only while it is still Open.
+router.patch("/:id", isLoggedIn, wrapAsync(async (req, res) => {
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ success: false, message: "Invalid complaint ID." });
+    const complaint = await Complaint.findOne({ _id: req.params.id, complainant: req.session.userId });
+    if (!complaint) return res.status(404).json({ success: false, message: "Complaint not found." });
+    if (complaint.status !== "Open") return res.status(409).json({ success: false, message: "Only open complaints can be edited." });
+    const { category, subject, description } = req.body || {};
+    if (!categories.includes(category) || typeof subject !== "string" || subject.trim().length < 5 || subject.trim().length > 120 ||
+        typeof description !== "string" || description.trim().length < 10 || description.trim().length > 3000) {
+        return res.status(400).json({ success: false, message: "Provide a valid category, a subject (5–120 characters), and a description (10–3000 characters)." });
+    }
+    complaint.category = category;
+    complaint.subject = subject.trim();
+    complaint.description = description.trim();
+    await complaint.save();
+    return res.status(200).json({ success: true, message: "Complaint updated." });
+}));
+
+router.delete("/:id", isLoggedIn, wrapAsync(async (req, res) => {
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ success: false, message: "Invalid complaint ID." });
+    const complaint = await Complaint.findOne({ _id: req.params.id, complainant: req.session.userId });
+    if (!complaint) return res.status(404).json({ success: false, message: "Complaint not found." });
+    if (complaint.status !== "Open") return res.status(409).json({ success: false, message: "Only open complaints can be deleted." });
+    await complaint.deleteOne();
+    return res.status(200).json({ success: true, message: "Complaint deleted." });
+}));
+
 // Admin can change complaint status and add an internal note.
 router.patch("/:id/status", isLoggedIn, isAdmin, wrapAsync(async (req, res) => {
     if (!mongoose.isValidObjectId(req.params.id)) {
