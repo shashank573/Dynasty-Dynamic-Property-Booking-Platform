@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "test": "NODE_ENV=test node --test"
+    "test": "SESSION_SECRET=dynastay-test-only-session-secret NODE_ENV=test node --test"
   },
   "repository": {
     "type": "git",
