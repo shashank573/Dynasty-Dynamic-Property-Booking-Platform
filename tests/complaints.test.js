@@ -126,6 +126,12 @@ test("Complaint route integration tests", async (t) => {
             assert.equal(adminComplaint.handledBy._id, admin._id.toString());
             assert.ok(adminComplaint.handledAt);
 
+            const notePreserved = await adminAgent
+                .patch("/complaints/" + complaintId + "/status")
+                .send({ status: "In Review" });
+            assert.equal(notePreserved.status, 200);
+            assert.equal(notePreserved.body.complaint.adminNote, "Private internal note");
+
             const updated = await adminAgent.patch("/complaints/" + complaintId + "/status").send({
                 status: "In Review", adminNote: "Reviewing the booking details."
             });
@@ -133,6 +139,38 @@ test("Complaint route integration tests", async (t) => {
             assert.equal(updated.body.complaint.status, "In Review");
             assert.equal(updated.body.complaint.adminNote, "Reviewing the booking details.");
             assert.equal(updated.body.complaint.handledBy.toString(), admin._id.toString());
+
+            const noteCleared = await adminAgent
+                .patch("/complaints/" + complaintId + "/status")
+                .send({ status: "In Review", adminNote: "" });
+            assert.equal(noteCleared.status, 200);
+            assert.equal(noteCleared.body.complaint.adminNote, "");
+        });
+
+        await t.test("rejects malformed admin notes and invalid complaint IDs", async () => {
+            for (const adminNote of [null, 123, {}, []]) {
+                const response = await adminAgent
+                    .patch("/complaints/" + complaintId + "/status")
+                    .send({ status: "In Review", adminNote });
+                assert.equal(response.status, 400);
+                assert.equal(response.body.success, false);
+            }
+
+            const tooLongNote = await adminAgent
+                .patch("/complaints/" + complaintId + "/status")
+                .send({ status: "In Review", adminNote: "x".repeat(2001) });
+            assert.equal(tooLongNote.status, 400);
+
+            const invalidStatus = await adminAgent
+                .patch("/complaints/" + complaintId + "/status")
+                .send({ status: "Unknown" });
+            assert.equal(invalidStatus.status, 400);
+
+            const invalidId = await adminAgent
+                .patch("/complaints/not-a-valid-id/status")
+                .send({ status: "Resolved" });
+            assert.equal(invalidId.status, 400);
+            assert.equal(invalidId.body.success, false);
         });
 
         await t.test("blocks non-admin complaint status changes", async () => {
