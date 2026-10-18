@@ -94,6 +94,40 @@ test("Complaint route integration tests", async (t) => {
             complaintId = response.body.complaint._id;
         });
 
+        await t.test("admin EJS status controls show only valid next transitions", async () => {
+            const inReviewComplaint = await Complaint.create({
+                complainant: guest._id, category: "Other",
+                subject: "Review-stage issue", description: "This complaint is currently being reviewed.",
+                status: "In Review"
+            });
+            const closedComplaint = await Complaint.create({
+                complainant: guest._id, category: "Other",
+                subject: "Closed-stage issue", description: "This complaint has already been resolved.",
+                status: "Resolved"
+            });
+
+            const page = await adminAgent.get("/complaints/admin-dashboard");
+            assert.equal(page.status, 200);
+
+            const openCard = page.text.split('data-id="' + complaintId + '"')[1];
+            assert.ok(openCard);
+            assert.match(openCard, /<option value="Open" selected>Open<\/option>/);
+            assert.match(openCard, /<option value="In Review">In Review<\/option>/);
+            assert.doesNotMatch(openCard.split("</form>")[0], /<option value="Resolved">|<option value="Rejected">/);
+
+            const reviewCard = page.text.split('data-id="' + inReviewComplaint._id + '"')[1];
+            assert.ok(reviewCard);
+            assert.match(reviewCard, /<option value="In Review" selected>In Review<\/option>/);
+            assert.match(reviewCard, /<option value="Resolved">Resolved<\/option>/);
+            assert.match(reviewCard, /<option value="Rejected">Rejected<\/option>/);
+            assert.doesNotMatch(reviewCard.split("</form>")[0], /<option value="Open">/);
+
+            const closedCard = page.text.split('data-id="' + closedComplaint._id + '"')[1];
+            assert.ok(closedCard);
+            assert.match(closedCard, /admin-reopen-form/);
+            assert.doesNotMatch(closedCard.split("</article>")[0], /admin-status-form/);
+        });
+
         await t.test("complainants can edit and delete only their own open complaints", async () => {
             const editableComplaint = await Complaint.create({
                 complainant: guest._id, category: "Booking", subject: "Editable complaint",
