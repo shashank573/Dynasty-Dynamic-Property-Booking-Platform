@@ -53,7 +53,31 @@ const complaintSchema = new mongoose.Schema({
     handledAt: {
         type: Date,
         default: null
-    }
+    },
+    reopenHistory: [{
+        previousStatus: {
+            type: String,
+            enum: ["Resolved", "Rejected"],
+            required: true
+        },
+        reason: {
+            type: String,
+            required: true,
+            trim: true,
+            minlength: 10,
+            maxlength: 1000
+        },
+        reopenedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: true
+        },
+        reopenedAt: {
+            type: Date,
+            required: true,
+            default: Date.now
+        }
+    }]
 }, { timestamps: true });
 
 complaintSchema.index({ complainant: 1, createdAt: -1 });
