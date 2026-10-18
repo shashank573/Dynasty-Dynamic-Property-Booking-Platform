@@ -175,4 +175,39 @@ router.patch("/:id/reopen", isLoggedIn, isAdmin, wrapAsync(async (req, res) => {
     });
 }));
 
+
+// EJS pages for the existing server-rendered interface.
+router.get("/new", isLoggedIn, wrapAsync(async (req, res) => {
+    const bookings = await Booking.find({ guest: req.session.userId })
+        .select("_id checkIn checkOut status")
+        .sort({ createdAt: -1 });
+    return res.render("complaints/new.ejs", { bookings });
+}));
+
+router.get("/my", isLoggedIn, wrapAsync(async (req, res) => {
+    const complaints = await Complaint.find({ complainant: req.session.userId })
+        .select("-adminNote -handledBy -handledAt -reopenHistory")
+        .populate("booking", "checkIn checkOut status")
+        .sort({ createdAt: -1 });
+    return res.render("complaints/mine.ejs", { complaints });
+}));
+
+router.get("/admin-dashboard", isLoggedIn, isAdmin, wrapAsync(async (req, res) => {
+    const filter = {};
+    if (req.query.status !== undefined) {
+        if (!statuses.includes(req.query.status)) {
+            return res.status(400).render("listings/error.ejs", {
+                err: { statusCode: 400, message: "Invalid complaint status filter." }
+            });
+        }
+        filter.status = req.query.status;
+    }
+    const complaints = await Complaint.find(filter)
+        .populate("complainant", "name email role")
+        .populate("booking", "checkIn checkOut status")
+        .populate("handledBy", "name email")
+        .sort({ createdAt: -1 });
+    return res.render("complaints/admin.ejs", { complaints, statuses });
+}));
+
 module.exports = router;
