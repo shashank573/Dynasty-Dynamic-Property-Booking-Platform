@@ -90,16 +90,25 @@ test("Complaint route integration tests", async (t) => {
             assert.equal(response.status, 400);
         });
 
-        await t.test("users can see only their own complaints", async () => {
+        await t.test("users can see only their own complaints and not internal admin fields", async () => {
             await Complaint.create({
                 complainant: otherGuest._id, category: "Other",
                 subject: "Another user issue", description: "This belongs to another user."
             });
+            await Complaint.findByIdAndUpdate(complaintId, {
+                adminNote: "Private internal note",
+                handledBy: admin._id,
+                handledAt: new Date()
+            });
+
             const response = await guestAgent.get("/complaints/mine");
             assert.equal(response.status, 200);
             assert.equal(response.body.count, 1);
             assert.equal(response.body.complaints[0].complainant._id, undefined);
             assert.equal(response.body.complaints[0]._id, complaintId);
+            assert.equal(Object.hasOwn(response.body.complaints[0], "adminNote"), false);
+            assert.equal(Object.hasOwn(response.body.complaints[0], "handledBy"), false);
+            assert.equal(Object.hasOwn(response.body.complaints[0], "handledAt"), false);
         });
 
         await t.test("blocks non-admin access to complaint queue", async () => {
@@ -111,6 +120,11 @@ test("Complaint route integration tests", async (t) => {
             const list = await adminAgent.get("/complaints").query({ status: "Open" });
             assert.equal(list.status, 200);
             assert.equal(list.body.count, 2);
+            const adminComplaint = list.body.complaints.find(item => item._id === complaintId);
+            assert.ok(adminComplaint);
+            assert.equal(adminComplaint.adminNote, "Private internal note");
+            assert.equal(adminComplaint.handledBy._id, admin._id.toString());
+            assert.ok(adminComplaint.handledAt);
 
             const updated = await adminAgent.patch("/complaints/" + complaintId + "/status").send({
                 status: "In Review", adminNote: "Reviewing the booking details."
