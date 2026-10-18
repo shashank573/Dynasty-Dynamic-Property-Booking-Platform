@@ -15,17 +15,22 @@
     <div class="d-flex flex-wrap justify-content-between gap-2"><div><span class="badge text-bg-light border"><%= complaint.category %></span><h2 class="h5 mt-2 mb-1"><%= complaint.subject %></h2><p class="small text-muted mb-0">Submitted <%= new Date(complaint.createdAt).toLocaleString() %> · <%= complaint.complainant ? complaint.complainant.name : "Deleted account" %><% if (complaint.complainant) { %> (<%= complaint.complainant.email %>)<% } %></p></div><span class="badge text-bg-secondary align-self-start"><%= complaint.status %></span></div>
     <p class="mt-3" style="white-space: pre-wrap"><%= complaint.description %></p>
     <% if (complaint.booking) { %><p class="small text-muted">Booking: <%= new Date(complaint.booking.checkIn).toLocaleDateString() %> – <%= new Date(complaint.booking.checkOut).toLocaleDateString() %> · <%= complaint.booking.status %></p><% } %>
+    <% if (["Open", "In Review"].includes(complaint.status)) { %>
     <form class="admin-status-form border rounded p-3 mb-3" data-id="<%= complaint._id %>">
       <h3 class="h6">Update status / internal note</h3>
       <label class="form-label" for="status-<%= complaint._id %>">Status</label>
       <select class="form-select mb-2" id="status-<%= complaint._id %>" name="status" required>
-        <% statuses.forEach(status => { %><option value="<%= status %>" <%= complaint.status === status ? "selected" : "" %>><%= status %></option><% }) %>
+        <option value="<%= complaint.status %>" selected><%= complaint.status %></option>
+        <% (complaint.status === "Open" ? ["In Review"] : ["Resolved", "Rejected"]).forEach(status => { %><option value="<%= status %>"><%= status %></option><% }) %>
       </select>
       <label class="form-label" for="note-<%= complaint._id %>">Private admin note</label>
       <textarea class="form-control mb-2" id="note-<%= complaint._id %>" name="adminNote" rows="2" maxlength="2000"><%= complaint.adminNote || "" %></textarea>
       <button class="btn btn-primary btn-sm" type="submit">Save update</button>
       <% if (complaint.handledAt) { %><small class="text-muted ms-2">Last handled <%= new Date(complaint.handledAt).toLocaleString() %><% if (complaint.handledBy) { %> by <%= complaint.handledBy.name %><% } %></small><% } %>
     </form>
+    <% } else { %>
+      <p class="small text-muted">This complaint is closed. Reopen it explicitly to return it to review; status changes are disabled until then.</p>
+    <% } %>
     <% if (["Resolved", "Rejected"].includes(complaint.status)) { %>
       <form class="admin-reopen-form border rounded p-3" data-id="<%= complaint._id %>">
         <h3 class="h6">Reopen closed complaint</h3>
