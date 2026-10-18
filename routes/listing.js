@@ -71,7 +71,7 @@ router.put("/:id", isLoggedIn, isOwner, validateListing, wrapAsync(async (req, r
 // DELETE ROUTE
 router.delete("/:id", isLoggedIn, isOwner, wrapAsync(async (req, res) => {
     let {id} = req.params;
-    await Listing.findByIdAndDelete(id);
+    await Listing.findByIdAndDelete(id); // this will call the post middleware in listingSchema.js and deletes all the reviews associated with this listing
 
     res.redirect("/listings");
 }));
