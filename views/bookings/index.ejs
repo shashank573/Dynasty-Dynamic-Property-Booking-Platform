@@ -1,0 +1,79 @@
+<% layout("/layouts/boilerplate") %>
+<div class="py-4">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <div><h1>My Bookings</h1><p class="text-muted mb-0">Your stays, individual unit reservations, and standalone parking.</p></div>
+    <a class="btn btn-dark" href="/listings">Find a stay</a>
+  </div>
+  <section class="mb-5">
+    <h2 class="h4 mb-3">Property / unit bookings</h2>
+    <% if (bookings.length) { %>
+      <div class="row g-3">
+        <% bookings.forEach(booking => { %>
+          <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+            <div class="d-flex justify-content-between gap-2">
+              <h3 class="h5"><%= booking.unit?.listing?.title || "Property booking" %></h3>
+              <span class="badge <%= booking.status === 'Cancelled' ? 'text-bg-secondary' : booking.status === 'Confirmed' ? 'text-bg-success' : 'text-bg-warning' %>"><%= booking.status %></span>
+            </div>
+            <p class="mb-1"><strong>Unit:</strong> <%= booking.unit?.name || "Unit no longer available" %></p>
+            <% if (booking.unit?.listing?.location) { %><p class="text-muted mb-1"><%= booking.unit.listing.location %></p><% } %>
+            <p class="mb-1"><strong>Check-in:</strong> <%= new Date(booking.checkIn).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" }) %></p>
+            <p class="mb-1"><strong>Check-out:</strong> <%= new Date(booking.checkOut).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" }) %></p>
+            <p><strong>Total:</strong> ₹<%= Number(booking.totalPrice).toLocaleString("en-IN") %></p>
+            <% if (["Pending", "Confirmed"].includes(booking.status) && new Date(booking.checkIn) > new Date()) { %>
+              <button class="btn btn-sm btn-outline-danger cancel-booking" data-id="<%= booking._id %>">Cancel booking</button>
+            <% } %>
+          </div></div></div>
+        <% }) %>
+      </div>
+    <% } else { %><p class="text-muted">You don't have any property/unit bookings yet.</p><% } %>
+  </section>
+
+  <section>
+    <h2 class="h4 mb-3">Parking reservations</h2>
+    <% if (parkingReservations.length) { %>
+      <div class="row g-3">
+        <% parkingReservations.forEach(reservation => { %>
+          <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+            <div class="d-flex justify-content-between gap-2">
+              <h3 class="h5"><%= reservation.parking?.listing?.title || "Parking reservation" %></h3>
+              <span class="badge <%= reservation.status === 'Cancelled' ? 'text-bg-secondary' : reservation.status === 'Confirmed' ? 'text-bg-success' : 'text-bg-warning' %>"><%= reservation.status %></span>
+            </div>
+            <p class="mb-1"><strong>Type:</strong> <%= reservation.reservationType === "property" ? "Included with property booking" : "Standalone parking" %></p>
+            <p class="mb-1"><strong>Slot:</strong> <%= reservation.parking?.slotNumber || "Unavailable" %></p>
+            <p class="mb-1"><strong>From:</strong> <%= new Date(reservation.startAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) %></p>
+            <p class="mb-1"><strong>Until:</strong> <%= new Date(reservation.endAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) %></p>
+            <p><strong>Total:</strong> ₹<%= Number(reservation.totalPrice).toLocaleString("en-IN") %></p>
+            <% if (reservation.reservationType === "independent" && ["Pending", "Confirmed"].includes(reservation.status) && new Date(reservation.startAt) > new Date()) { %>
+              <button class="btn btn-sm btn-outline-danger cancel-parking" data-id="<%= reservation._id %>">Cancel parking</button>
+            <% } else if (reservation.reservationType === "property" && ["Pending", "Confirmed"].includes(reservation.status)) { %>
+              <small class="text-muted">Cancel the linked property booking to cancel this parking.</small>
+            <% } %>
+          </div></div></div>
+        <% }) %>
+      </div>
+    <% } else { %><p class="text-muted">You don't have any parking reservations yet.</p><% } %>
+    <a class="btn btn-outline-dark mt-3" href="/parking">Book standalone parking</a>
+  </section>
+  <div id="booking-dashboard-message" class="mt-3" role="status" aria-live="polite"></div>
+</div>
+<script>
+document.querySelectorAll(".cancel-booking, .cancel-parking").forEach(button => {
+  button.addEventListener("click", async () => {
+    if (!window.confirm("Cancel this reservation?")) return;
+    const isParking = button.classList.contains("cancel-parking");
+    const url = isParking ? "/parking/reservations/" + button.dataset.id + "/cancel" : "/bookings/" + button.dataset.id + "/cancel";
+    const message = document.getElementById("booking-dashboard-message");
+    try {
+      const response = await fetch(url, { method: "PATCH" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || data.message || "Cancellation failed.");
+      message.className = "alert alert-success mt-3";
+      message.textContent = data.message || "Reservation cancelled.";
+      setTimeout(() => window.location.reload(), 500);
+    } catch (error) {
+      message.className = "alert alert-danger mt-3";
+      message.textContent = error.message;
+    }
+  });
+});
+</script>
