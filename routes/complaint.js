@@ -79,6 +79,33 @@ router.get("/", isLoggedIn, isAdmin, wrapAsync(async (req, res) => {
     return res.status(200).json({ success: true, count: complaints.length, complaints });
 }));
 
+// A complainant may edit or delete their own complaint only while it is still Open.
+router.patch("/:id", isLoggedIn, wrapAsync(async (req, res) => {
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ success: false, message: "Invalid complaint ID." });
+    const complaint = await Complaint.findOne({ _id: req.params.id, complainant: req.session.userId });
+    if (!complaint) return res.status(404).json({ success: false, message: "Complaint not found." });
+    if (complaint.status !== "Open") return res.status(409).json({ success: false, message: "Only open complaints can be edited." });
+    const { category, subject, description } = req.body || {};
+    if (!categories.includes(category) || typeof subject !== "string" || subject.trim().length < 5 || subject.trim().length > 120 ||
+        typeof description !== "string" || description.trim().length < 10 || description.trim().length > 3000) {
+        return res.status(400).json({ success: false, message: "Provide a valid category, a subject (5–120 characters), and a description (10–3000 characters)." });
+    }
+    complaint.category = category;
+    complaint.subject = subject.trim();
+    complaint.description = description.trim();
+    await complaint.save();
+    return res.status(200).json({ success: true, message: "Complaint updated." });
+}));
+
+router.delete("/:id", isLoggedIn, wrapAsync(async (req, res) => {
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ success: false, message: "Invalid complaint ID." });
+    const complaint = await Complaint.findOne({ _id: req.params.id, complainant: req.session.userId });
+    if (!complaint) return res.status(404).json({ success: false, message: "Complaint not found." });
+    if (complaint.status !== "Open") return res.status(409).json({ success: false, message: "Only open complaints can be deleted." });
+    await complaint.deleteOne();
+    return res.status(200).json({ success: true, message: "Complaint deleted." });
+}));
+
 // Admin can change complaint status and add an internal note.
 router.patch("/:id/status", isLoggedIn, isAdmin, wrapAsync(async (req, res) => {
     if (!mongoose.isValidObjectId(req.params.id)) {
@@ -173,6 +200,41 @@ router.patch("/:id/reopen", isLoggedIn, isAdmin, wrapAsync(async (req, res) => {
         message: "Complaint reopened for review.",
         complaint
     });
+}));
+
+
+// EJS pages for the existing server-rendered interface.
+router.get("/new", isLoggedIn, wrapAsync(async (req, res) => {
+    const bookings = await Booking.find({ guest: req.session.userId })
+        .select("_id checkIn checkOut status")
+        .sort({ createdAt: -1 });
+    return res.render("complaints/new.ejs", { bookings });
+}));
+
+router.get("/my", isLoggedIn, wrapAsync(async (req, res) => {
+    const complaints = await Complaint.find({ complainant: req.session.userId })
+        .select("-adminNote -handledBy -handledAt -reopenHistory")
+        .populate("booking", "checkIn checkOut status")
+        .sort({ createdAt: -1 });
+    return res.render("complaints/mine.ejs", { complaints, submitted: req.query.submitted === "1" });
+}));
+
+router.get("/admin-dashboard", isLoggedIn, isAdmin, wrapAsync(async (req, res) => {
+    const filter = {};
+    if (req.query.status !== undefined) {
+        if (!statuses.includes(req.query.status)) {
+            return res.status(400).render("listings/error.ejs", {
+                err: { statusCode: 400, message: "Invalid complaint status filter." }
+            });
+        }
+        filter.status = req.query.status;
+    }
+    const complaints = await Complaint.find(filter)
+        .populate("complainant", "name email role")
+        .populate("booking", "checkIn checkOut status")
+        .populate("handledBy", "name email")
+        .sort({ createdAt: -1 });
+    return res.render("complaints/admin.ejs", { complaints, statuses });
 }));
 
 module.exports = router;

@@ -49,6 +49,24 @@ await t.test("POST /signup creates a user and hashes the password", async () => 
     assert.equal(await user.comparePassword("password123"), true);
 });
 
+await t.test("POST /signup allows a user to choose Host", async () => {
+    const response = await request(app)
+        .post("/signup")
+        .type("form")
+        .send({
+            name: "Test Host",
+            email: "host@example.com",
+            password: "password123",
+            role: "Host"
+        });
+
+    assert.equal(response.status, 302);
+
+    const user = await User.findOne({ email: "host@example.com" });
+    assert.ok(user);
+    assert.equal(user.role, "Host");
+});
+
 await t.test("POST /signup rejects duplicate email", async () => {
     const response = await request(app)
         .post("/signup")

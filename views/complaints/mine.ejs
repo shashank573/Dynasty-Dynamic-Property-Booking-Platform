@@ -1,0 +1,70 @@
+<% layout("layouts/boilerplate") %>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 my-4">
+  <div><h1 class="h3 mb-1">My complaints</h1><p class="text-muted mb-0">Only complaints submitted by your account appear here.</p></div>
+  <a class="btn btn-primary" href="/complaints/new"><i class="fa-solid fa-plus me-1"></i> New complaint</a>
+</div>
+<% if (typeof submitted !== "undefined" && submitted) { %><div class="alert alert-success" role="status">Your complaint was submitted successfully.</div><% } %>
+<% if (!complaints.length) { %>
+  <div class="card card-body text-center py-5 mb-4"><h2 class="h5">No complaints yet</h2><p class="text-muted">If you need help with a stay or booking, submit a complaint and track its status here.</p><div><a class="btn btn-primary" href="/complaints/new">Submit a complaint</a></div></div>
+<% } else { %>
+  <div class="row g-3 mb-4">
+  <% complaints.forEach(complaint => { %>
+    <div class="col-12"><article class="card shadow-sm"><div class="card-body">
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+        <div><span class="badge text-bg-light border"><%= complaint.category %></span><h2 class="h5 mt-2 mb-1"><%= complaint.subject %></h2><small class="text-muted">Submitted <%= new Date(complaint.createdAt).toLocaleString() %></small></div>
+        <span class="badge <%= complaint.status === 'Resolved' ? 'text-bg-success' : complaint.status === 'Rejected' ? 'text-bg-danger' : complaint.status === 'In Review' ? 'text-bg-info' : 'text-bg-secondary' %>"><%= complaint.status %></span>
+      </div>
+      <p class="mt-3 mb-2" style="white-space: pre-wrap"><%= complaint.description %></p>
+      <% if (complaint.booking) { %><p class="small text-muted mb-0">Related booking: <%= new Date(complaint.booking.checkIn).toLocaleDateString() %> – <%= new Date(complaint.booking.checkOut).toLocaleDateString() %> (<%= complaint.booking.status %>)</p><% } %>
+      <% if (complaint.status === "Open") { %>
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        <button class="btn btn-outline-primary btn-sm" type="button" data-edit-toggle="<%= complaint._id %>">Edit complaint</button>
+        <button class="btn btn-outline-danger btn-sm" type="button" data-delete-complaint="<%= complaint._id %>">Delete complaint</button>
+      </div>
+      <form class="complaint-edit-form border rounded p-3 mt-3" data-edit-form="<%= complaint._id %>" hidden>
+        <div class="mb-3"><label class="form-label" for="category-<%= complaint._id %>">Category</label><select class="form-select" id="category-<%= complaint._id %>" name="category" required><% ["Booking", "Parking", "Property", "Host", "Guest", "Payment", "Safety", "Other"].forEach(category => { %><option value="<%= category %>" <%= complaint.category === category ? "selected" : "" %>><%= category %></option><% }) %></select></div>
+        <div class="mb-3"><label class="form-label" for="subject-<%= complaint._id %>">Subject</label><input class="form-control" id="subject-<%= complaint._id %>" name="subject" minlength="5" maxlength="120" value="<%= complaint.subject %>" required></div>
+        <div class="mb-3"><label class="form-label" for="description-<%= complaint._id %>">Description</label><textarea class="form-control" id="description-<%= complaint._id %>" name="description" minlength="10" maxlength="3000" rows="4" required><%= complaint.description %></textarea></div>
+        <button class="btn btn-primary btn-sm" type="submit">Save changes</button>
+        <button class="btn btn-outline-secondary btn-sm" type="button" data-edit-toggle="<%= complaint._id %>">Cancel</button>
+      </form>
+      <% } else { %><p class="small text-muted mt-3 mb-0">This complaint is no longer editable because its status is <%= complaint.status %>. Editing and deletion are available only while a complaint is Open.</p><% } %>
+      <p class="small text-muted mt-2 mb-0">Internal admin notes and audit history are private and are not displayed here.</p>
+    </div></article></div>
+  <% }) %>
+  </div>
+<% } %>
+
+<script>
+document.querySelectorAll("[data-edit-toggle]").forEach(button => {
+  button.addEventListener("click", () => {
+    const form = document.querySelector('[data-edit-form="' + button.dataset.editToggle + '"]');
+    if (form) form.hidden = !form.hidden;
+  });
+});
+document.querySelectorAll(".complaint-edit-form").forEach(form => {
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    try {
+      const response = await fetch("/complaints/" + form.dataset.editForm, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(Object.fromEntries(new FormData(form).entries()))
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.message || "Could not update complaint.");
+      window.location.reload();
+    } catch (error) { alert(error.message || "Could not update complaint."); }
+  });
+});
+document.querySelectorAll("[data-delete-complaint]").forEach(button => {
+  button.addEventListener("click", async () => {
+    if (!window.confirm("Delete this complaint? This cannot be undone.")) return;
+    try {
+      const response = await fetch("/complaints/" + button.dataset.deleteComplaint, { method: "DELETE" });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.message || "Could not delete complaint.");
+      window.location.reload();
+    } catch (error) { alert(error.message || "Could not delete complaint."); }
+  });
+});
+</script>

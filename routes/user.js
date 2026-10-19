@@ -66,6 +66,8 @@ res.render("users/signup.ejs");
 router.post("/signup", async (req, res, next) => {
 try {
 const { name, email, password } = req.body;
+    // Public signup supports Guest and Host only; never accept Admin from the client.
+    const role = req.body.role === "Host" ? "Host" : "Guest";
 
     if (
         typeof name !== "string" ||
@@ -96,7 +98,7 @@ const { name, email, password } = req.body;
         name: name.trim(),
         email: normalizedEmail,
         password,
-        role: "Guest"
+        role
     });
 
     await user.save();

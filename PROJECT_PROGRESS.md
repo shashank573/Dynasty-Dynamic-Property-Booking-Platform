@@ -7,7 +7,13 @@
 
 ---
 
-## 1. Executive Summary — What Are We Building?
+- **Repository:** `shashank573/Dynasty-Dynamic-Property-Booking-Platform`
+- **Current feature branch:** `feature/complaint-ejs-ui` (EJS complaint interface integration pending review)
+- **Parking Reservations:** merged into `main` through PR #2.
+- **Complaints backend:** merged into `main` through PR #3 (squash merge commit `2cc497f705a59425958d2582c44f9a22e80ac499`).
+- **Latest user-reported full test run before the latest PR review fixes:** `npm test` — **111 passed, 0 failed, 0 cancelled, 0 skipped, 0 todo** (about 10.7 seconds).
+- The user ran this test suite locally at commit `7faaced`. Additional PR review changes were subsequently pushed, including a new complaint UI transition test; rerun `npm test` before treating the current branch as verified.
+- Deployment behavior has not been verified in this update.
 
 **DynaStay is a property-booking platform built with Node.js, Express, MongoDB/Mongoose and server-rendered EJS pages.** Its central workflow is to let users discover property listings, book an individual unit for a date range, and optionally coordinate parking. The platform distinguishes Guests, Hosts and Admins so that ordinary users can book and manage their own activity, property owners can manage their own listings and inventory, and administrators can handle platform-level work such as complaints.
 
@@ -272,8 +278,8 @@ Remaining:
 - Confirm parking screens are accessible and understandable from the current UI.
 - Smoke-test linked and independent reservations in a deployed environment.
 
-### 5.6 Complaints
-**Status: Backend and controlled reopen workflow implemented and merged to main through PR #3. Frontend integration remains pending.**
+### 3. Complaints
+**Status: Backend and controlled reopen workflow merged through PR #3; EJS frontend integration implemented on `feature/complaint-ejs-ui` and awaiting review/testing.**
 
 Implemented:
 - Complaint model with constrained categories, statuses, text lengths and audit metadata.
@@ -288,189 +294,95 @@ Implemented:
 - Tests cover authorization, validation, booking ownership, privacy, status transitions and reopen behavior.
 
 Remaining:
-- Integrate submission/history into the EJS interface.
-- Integrate the Admin complaint queue, status filters, internal notes and reopen reason UI.
-- Add success, validation and error states.
-- Review simultaneous Admin updates and race conditions on status transitions.
-- Smoke-test complaint privacy and Admin permissions after deployment.
+- Review admin authorization, input validation, information exposure and concurrency/race behavior around complaint status changes.
+- Run `npm test` on the branch and review the new EJS page-render/role-access tests.
+- Perform browser-level end-to-end testing of complaint submission, privacy, admin transitions and reopening; automated HTTP tests do not execute browser JavaScript.
+- Smoke-test complaint flows in the deployed application after deployment.
+- PR #3 was previously merged into `main`; PR #4 remains open until GitHub confirms otherwise.
 
-### 5.7 Admin Verification
-**Status: Planned / not implemented in the progress record.**
+### 4. Admin Verification
+**Status: Not started.**
 
-Work to do:
-1. Inspect existing User, Listing and authorization models/routes.
-2. Decide what is being verified: Host identity, property ownership, property details, or a combination.
-3. Define required evidence, allowed formats, retention/privacy rules and review expectations.
-4. Define states and transitions (for example Pending, Approved, Rejected, Resubmission Required) only after agreement.
-5. Add Admin-only review/decision routes and audit metadata.
-6. Decide what Guests and Hosts can see about a verification decision.
-7. Add validation, authorization, privacy and transition tests.
-8. Integrate status display and submission screens into the UI.
-9. Do not invent legal/compliance requirements or automatically approve submissions.
+Planned:
+- Inspect existing User, Host and property models and authorization before designing changes.
+- Agree on evidence/data Hosts must submit and what an Admin reviews.
+- Define verification states and permitted transitions, such as Pending, Approved and Rejected.
+- Add admin-only review/decision routes and audit metadata.
+- Add model, route, validation, authorization and edge-case tests.
+- Propose the design and exact file changes before implementation; wait for approval.
 
-### 5.8 Trust Score
-**Status: Planned / not implemented in the progress record.**
+### 5. Trust Score
+**Status: Not started.**
 
-Work to do:
-1. Agree on what the score measures and whose score it is (Host, Listing, Guest, or more than one).
-2. Define explainable signals, eligibility and score bounds.
-3. Decide how verified status, completed stays and reviews are used.
-4. Define how complaints are treated: an allegation alone must not automatically penalize a person; only carefully defined, reviewed outcomes should be considered.
-5. Define missing-data behavior, update timing, recalculation and auditability.
-6. Test edge cases and document why a score changes.
-7. Obtain approval for weights and thresholds before implementing them.
+Planned:
+- Agree on a transparent and explainable scoring model before coding.
+- Identify reliable signals and how each affects the score, such as completed stays, reviews, verified status and upheld complaints.
+- Define score bounds, missing-data behavior, update strategy and abuse resistance.
+- Do not automatically penalize users for unverified allegations.
+- Add calculation tests and document score explanations.
+- Do not invent scoring weights without approval.
 
-### 5.9 Frontend / EJS integration
-**Status: Existing EJS interface; new backend workflows still need UI integration. React migration is unconfirmed.**
+### 6. Frontend Integration
+**Status: Pending. Existing interface uses EJS; a React migration is not confirmed.**
 
-Work to do:
-- Audit existing templates and route response formats before building new screens.
-- Integrate booking date/price/parking-choice feedback.
-- Integrate parking slot management, availability, independent reservations and cancellation.
-- Integrate complaint submission/history and Admin complaint management.
-- Later integrate Admin Verification and Trust Score once their rules are agreed.
-- Add loading, empty, success, validation and error states.
-- Ensure the UI never substitutes for server-side authorization.
-- Keep current EJS flows working unless a React migration is explicitly planned and approved.
-- Add end-to-end coverage for key user journeys.
+Planned:
+- Audit current EJS pages and available routes.
+- Decide whether to integrate features into EJS first or explicitly plan a React integration.
+- Integrate parking, complaints, verification and Trust Score flows.
+- Add loading, validation, success/error and authorization-aware states.
+- Add end-to-end/integration coverage for key user flows.
+- Preserve existing EJS functionality unless a migration is explicitly approved.
 
-### 5.10 Final security, QA, deployment and documentation
-**Status: In progress; no complete production sign-off recorded.**
+### 7. Final Security, Testing & Documentation
+**Status: In progress; final phase not complete.**
 
-Work to do:
-- Run focused and full automated tests after changes.
-- Review authentication, role checks, ownership, request validation and sensitive data exposure.
-- Review session settings, secret handling, database permissions and production configuration.
-- Confirm MongoDB transaction support.
-- Check dependency health and startup behavior.
-- Run smoke tests against a deployment environment.
-- Document deployment, environment variables, backup/recovery expectations and operational troubleshooting.
-- Record test evidence accurately, including branch/commit and environment.
-- Check diffs and Git status before commits; never commit credentials.
-- Keep architecture, diagrams, setup documentation and this progress tracker synchronized with actual implementation.
+Planned:
+- Run focused tests and full `npm test` after meaningful changes.
+- Review authentication, authorization, ownership, input validation, sessions, secrets, error handling and sensitive-data exposure.
+- Review transaction behavior and production configuration.
+- Check dependencies and deployment setup.
+- Update setup instructions, API/architecture documentation and this progress tracker.
+- Record only tests actually run and their real results.
+- Review Git status/diffs and ensure secrets are never committed.
+- Run a final end-to-end smoke test and document known risks.
 
-### 5.11 Conservative dead-code cleanup
-**Status: PR #6 merged into main.**
+## Immediate Next Steps
 
-PR #6: [chore: remove confirmed obsolete commented-out code](https://github.com/shashank573/Dynasty-Dynamic-Property-Booking-Platform/pull/6)
+1. Run and review the full test suite for `feature/complaint-ejs-ui` after the latest review fixes.
+2. Perform browser-level end-to-end testing of complaint submission, user privacy, admin status transitions and reopening.
+3. Confirm PR #4 mergeability after the duplicate case-conflicting progress file is removed and the admin status controls are aligned with backend transitions.
+4. Before implementing Admin Verification or Trust Score, inspect the current repository and propose the design/file changes and scoring rules for approval.
+5. After deployment, smoke-test complaint flows in the deployed application.
 
-- Removed a disabled sample `/testListing` route and obsolete commented alternatives in `app.js`.
-- Removed obsolete commented-out listing creation/validation code and debug logging in `routes/listing.js`.
-- Normalized route section comments/spacing.
-- Restored and preserved the explanatory comment that Listing deletion triggers the post middleware which deletes associated reviews.
-- Squash merge commit: `e66ca4c5fcb4437e25de142599801cfe782dfff6`.
-- The user reported 107 passing tests on the cleanup branch before the final comment-only restoration. The suite was not rerun after that comment restoration or by this documentation update.
-- No feature/business logic was intended to change in this cleanup.
+## Project Stack and Working Rules
 
----
+- **Backend:** Node.js, Express 5
+- **Database:** MongoDB + Mongoose
+- **Current interface:** EJS templates
+- **Validation:** Joi
+- **Authentication:** session-based authentication and bcrypt password hashing
+- **Testing:** Node.js built-in test runner, Supertest and MongoDB Memory Server
+- **Roles:** Guest, Host, Admin
+- **React frontend:** planned; migration not confirmed
+- **JWT:** planned; implementation not confirmed
+- **Live payment gateway/mobile app:** out of scope unless project scope changes
 
-## 6. Testing and Evidence
+Working rules:
+1. Explain changes in simple Hinglish and work one task at a time.
+2. Inspect current code before changing it.
+3. Explain the goal, files affected and tests before implementation.
+4. Preserve existing functionality and local changes.
+5. Never claim tests passed unless the result is available.
+6. Do not commit `.env`, credentials or secrets.
+7. Avoid destructive Git commands and review diffs before committing.
+8. Do not run a destructive seed script against data that must be preserved.
+9. Do not merge a feature branch into `main` without explicit user approval.
+10. Keep this document current when a milestone is verified.
 
-### 6.1 Latest reported full-suite result
+## Historical Notes
 
-The latest complete test output provided by the user during the cleanup review reported:
-
-- Tests: 107
-- Passed: 107
-- Failed: 0
-- Cancelled: 0
-- Skipped: 0
-- Todo: 0
-- Runtime: approximately 10.6 seconds
-
-This is evidence that the suite passed in that local checkout at that time. It is **not** evidence of a fresh run on the current `main` commit, and it does not replace a deployed smoke test.
-
-### 6.2 Test areas visible in the reported run
-
-- Root and authentication-gated listing routes.
-- Signup, password hashing, duplicate email, password policy and role assignment.
-- Booking integration: date validation, unit availability, overlapping reservations, simultaneous booking requests, parking allocation and cancellation.
-- Booking schema/model validation.
-- Complaint submission, ownership/privacy, Admin access, status transitions and reopening.
-- Listing CRUD and review cleanup.
-- Parking availability, billing, overlaps, simultaneous reservations and cancellation.
-- Unit authorization, validation and booking-history restrictions.
-- User password hashing and default role.
-
-### 6.3 Test strategy going forward
-
-After a meaningful code change:
-1. Run the focused test file(s).
-2. Run `npm test`.
-3. Record the branch/commit, environment and exact result.
-4. Review `git diff` and `git status --short`.
-5. For concurrency/transaction work, include realistic overlapping requests and transaction-failure cases where feasible.
-6. Before release, run a smoke test against the intended deployment configuration.
-
----
-
-## 7. Operating Systems / Concurrency Concepts in the Project
-
-The project uses database-backed concurrency techniques to coordinate overlapping HTTP requests. It does **not** implement its own OS scheduler, thread manager, mutex or semaphore.
-
-The shared documentation lens is in `docs/OS_CONCEPT_LENS.md`:
-
-- **Concurrency Control:** shared Unit/Parking document writes make competing transactions coordinate.
-- **Race Condition:** two guests can request the same unit dates or parking slot at nearly the same time.
-- **Atomicity / Transaction:** related writes (such as a Booking and its linked parking reservation) commit or roll back together.
-- **Atomic Conditional Update:** cancellation and inventory operations check current state at update time to avoid overwriting a competing change.
-
-Relevant code locations include `routes/booking.js`, `routes/parking.js`, and booking/parking integration tests. When creating or updating sequence diagrams, keep their messages consistent with actual transaction boundaries, conditions and error paths. The HTML sequence diagrams discussed in earlier project conversations were not confirmed present in the current main branch during this update; do not assume they are version-controlled unless the repository is checked.
-
----
-
-## 8. Current Progress — Honest Overall Assessment
-
-The core backend is substantially developed: accounts/roles, Listings, Reviews, Units, property booking, booking concurrency controls, parking reservations and complaint handling have implementations and automated test coverage. Parking and complaint backend milestones have been merged to `main`; the latest cleanup PR has also been merged. The reported test suite is healthy in the user's local cleanup checkout.
-
-However, **“107 tests pass” does not mean the project is finished**. Complaint UI integration is still pending, Admin Verification and Trust Score are roadmap items, production transaction/configuration support is not confirmed here, and no complete production deployment/end-to-end sign-off is recorded. The project should be described as a functional backend foundation with meaningful automated coverage and several product/integration/reliability tasks remaining—not as a fully shipped production service.
-
-No single completion percentage is stated because there is no agreed weighting for the seven workstreams; assigning one would imply precision that the current evidence does not support.
-
----
-
-## 9. Recommended Next Steps — In Order
-
-1. **Synchronize local checkout with GitHub `main`.** Fetch and inspect the latest main commit; avoid overwriting local work.
-2. **Refresh this progress document whenever a feature or test milestone changes.**
-3. **Integrate the Complaint workflows into EJS**: submit complaint, view own complaints, Admin queue/filter/status update/reopen.
-4. **Review booking and parking transaction behavior**: production MongoDB transaction support, retries/write conflicts, cancellation races and date boundaries.
-5. **Plan Admin Verification**: inspect existing models/routes and propose exact policy, files and tests before implementation.
-6. **Agree on Trust Score policy** before coding: signals, weights, transparency, missing data and complaint treatment.
-7. **Complete frontend integration** for parking and future features without silently migrating from EJS to React.
-8. **Perform final security and deployment review** and run end-to-end smoke tests.
-9. **Update architecture diagrams and supporting docs** so they reflect actual code, not an aspirational design.
-
-Priorities can be reordered with the user's approval.
-
----
-
-## 10. Project Working Agreement
-
-- Explain technical work in simple Hinglish when discussing it with the user.
-- Work in small, reviewable steps and explain the purpose, affected files and tests before substantial changes.
-- Inspect the current code before changing it; do not assume older conversation notes are still accurate.
-- Preserve existing behavior, useful comments and local uncommitted work.
-- For potentially risky or broad changes, explain the proposal and wait for approval.
-- Never claim a test was run unless a real result is available.
-- Do not commit `.env`, credentials, access tokens or secrets.
-- Avoid destructive Git commands; inspect status and diffs before commits.
-- Do not run destructive seed scripts against data that must be preserved.
-- Do not merge branches/PRs without explicit user approval.
-- Keep `PROJECT_PROGRESS.md` accurate: separate implemented, planned, user-reported, independently verified and deployment-verified work.
-- Do not invent product rules, Trust Score weights, verification policy or deployment state.
-- Do not treat future React/JWT/payment/mobile plans as implemented features unless the repository and approved scope confirm them.
-
----
-
-## 11. Milestone History
-
-- **Foundation:** repository audit, server/testing foundation, Listing/Review coverage and initial authentication/API work.
-- **Authentication/roles:** role-based listing access, review ownership checks, signup session regeneration and session-secret validation.
-- **Units and bookings:** Unit management, Booking model/creation, date validation and concurrency foundation.
-- **Parking Reservations:** backend implemented and merged into `main` through PR #2.
-- **Complaints:** complaint backend and controlled reopen workflow merged into `main` through PR #3.
-- **Conservative cleanup:** PR #6 merged into `main`; obsolete commented-out code removed while active routes and model behavior were retained.
-- **Current documentation milestone:** `PROJECT_PROGRESS.md` expanded to describe product purpose, user flows, architecture, entities, feature status, evidence, remaining work and working rules.
-
-**Source-of-truth rule:** The current repository, its tests and merged Git history take precedence over stale progress notes. When a statement cannot be verified from those sources or an explicit user-reported result, label it as planned, reported or unverified rather than presenting it as fact.
+- Day 1: repository audit, startup/testing foundation, Listing/Review tests, initial authentication and REST API were implemented.
+- Day 2: role-based listing access, review ownership checks and signup session regeneration were implemented.
+- Day 3: Unit model/management and Booking model/creation/concurrency foundation were implemented and tested for covered scenarios.
+- Parking Reservations: implemented and merged into `main` through PR #2.
+- Complaints: backend and controlled reopen workflow merged into `main` through PR #3.

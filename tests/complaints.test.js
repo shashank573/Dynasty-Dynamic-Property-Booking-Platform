@@ -53,6 +53,26 @@ test("Complaint route integration tests", async (t) => {
         assert.equal((await login(otherAgent, otherGuest.email)).status, 302);
         assert.equal((await login(adminAgent, admin.email)).status, 302);
 
+        await t.test("renders complaint submission, private history, and admin EJS pages with role checks", async () => {
+            const newPage = await guestAgent.get("/complaints/new");
+            assert.equal(newPage.status, 200);
+            assert.match(newPage.text, /Submit a complaint/);
+            assert.match(newPage.text, /complaint-form/);
+            assert.match(newPage.text, /My complaints/);
+
+            const minePage = await guestAgent.get("/complaints/my");
+            assert.equal(minePage.status, 200);
+            assert.match(minePage.text, /No complaints yet/);
+
+            const forbiddenAdminPage = await guestAgent.get("/complaints/admin-dashboard");
+            assert.equal(forbiddenAdminPage.status, 403);
+
+            const adminPage = await adminAgent.get("/complaints/admin-dashboard");
+            assert.equal(adminPage.status, 200);
+            assert.match(adminPage.text, /Complaint administration/);
+            assert.match(adminPage.text, /admin-status-form/);
+        });
+
         await t.test("requires login to submit a complaint", async () => {
             const response = await request(app).post("/complaints").send({
                 category: "Booking", subject: "Booking issue", description: "I need help with my booking."
@@ -74,13 +94,98 @@ test("Complaint route integration tests", async (t) => {
             complaintId = response.body.complaint._id;
         });
 
+        await t.test("admin EJS status controls show only valid next transitions", async () => {
+            const inReviewComplaint = await Complaint.create({
+                complainant: guest._id, category: "Other",
+                subject: "Review-stage issue", description: "This complaint is currently being reviewed.",
+                status: "In Review"
+            });
+            const closedComplaint = await Complaint.create({
+                complainant: guest._id, category: "Other",
+                subject: "Closed-stage issue", description: "This complaint has already been resolved.",
+                status: "Resolved"
+            });
+
+            const page = await adminAgent.get("/complaints/admin-dashboard");
+            assert.equal(page.status, 200);
+
+            const cardFor = id => {
+                const marker = page.text.indexOf('data-id="' + id + '"');
+                assert.notEqual(marker, -1);
+                const start = page.text.lastIndexOf('<article class="card shadow-sm">', marker);
+                const end = page.text.indexOf("</article>", marker);
+                assert.notEqual(start, -1);
+                assert.notEqual(end, -1);
+                return page.text.slice(start, end);
+            };
+
+            const openCard = cardFor(complaintId);
+            assert.match(openCard, /<option value="Open" selected>Open<\/option>/);
+            assert.match(openCard, /<option value="In Review">In Review<\/option>/);
+            assert.doesNotMatch(openCard, /<option value="Resolved">|<option value="Rejected">/);
+
+            const reviewCard = cardFor(inReviewComplaint._id);
+            assert.match(reviewCard, /<option value="In Review" selected>In Review<\/option>/);
+            assert.match(reviewCard, /<option value="Resolved">Resolved<\/option>/);
+            assert.match(reviewCard, /<option value="Rejected">Rejected<\/option>/);
+            assert.doesNotMatch(reviewCard, /<option value="Open">/);
+
+            const closedCard = cardFor(closedComplaint._id);
+            assert.match(closedCard, /admin-reopen-form/);
+            assert.doesNotMatch(closedCard, /admin-status-form/);
+        });
+
+        await t.test("complainants can edit and delete only their own open complaints", async () => {
+            const editableComplaint = await Complaint.create({
+                complainant: guest._id, category: "Booking", subject: "Editable complaint",
+                description: "This complaint is available for editing."
+            });
+            const edit = await guestAgent.patch("/complaints/" + editableComplaint._id).send({
+                category: "Payment", subject: "Updated payment issue", description: "Updated details for the payment problem."
+            });
+            assert.equal(edit.status, 200);
+            assert.equal(edit.body.success, true);
+
+            const otherUserEdit = await otherAgent.patch("/complaints/" + editableComplaint._id).send({
+                category: "Other", subject: "Trying to edit", description: "This should not be allowed."
+            });
+            assert.equal(otherUserEdit.status, 404);
+            const invalidEdit = await guestAgent.patch("/complaints/" + editableComplaint._id).send({
+                category: "Unknown", subject: "bad", description: "short"
+            });
+            assert.equal(invalidEdit.status, 400);
+            const deleteAttemptByOther = await otherAgent.delete("/complaints/" + editableComplaint._id);
+            assert.equal(deleteAttemptByOther.status, 404);
+            const deleteOpen = await guestAgent.delete("/complaints/" + editableComplaint._id);
+            assert.equal(deleteOpen.status, 200);
+            assert.equal(await Complaint.findById(editableComplaint._id), null);
+        });
+
+        await t.test("complaints cannot be edited or deleted after review starts", async () => {
+            const reviewedComplaint = await Complaint.create({
+                complainant: guest._id, category: "Other", subject: "Reviewed complaint",
+                description: "This complaint has entered review."
+            });
+            reviewedComplaint.status = "In Review";
+            await reviewedComplaint.save();
+            const edit = await guestAgent.patch("/complaints/" + reviewedComplaint._id).send({
+                category: "Other", subject: "Changed complaint", description: "Trying to change reviewed details."
+            });
+            assert.equal(edit.status, 409);
+            const deletion = await guestAgent.delete("/complaints/" + reviewedComplaint._id);
+            assert.equal(deletion.status, 409);
+            // Keep the shared fixture clean for the following tests' complaint counts.
+            await reviewedComplaint.deleteOne();
+        });
+
         await t.test("does not allow linking another guest's booking", async () => {
+            const complaintsBefore = await Complaint.countDocuments({});
             const response = await otherAgent.post("/complaints").send({
                 category: "Booking", subject: "Booking issue", description: "I need help with my booking.",
                 bookingId: booking._id.toString()
             });
             assert.equal(response.status, 404);
-            assert.equal(await Complaint.countDocuments({}), 1);
+            assert.equal(await Complaint.countDocuments({}), complaintsBefore);
         });
 
         await t.test("validates complaint input", async () => {
@@ -90,11 +195,13 @@ test("Complaint route integration tests", async (t) => {
             assert.equal(response.status, 400);
         });
 
+        let otherGuestComplaintId;
         await t.test("users can see only their own complaints and not internal admin fields", async () => {
-            await Complaint.create({
+            const otherGuestComplaint = await Complaint.create({
                 complainant: otherGuest._id, category: "Other",
                 subject: "Another user issue", description: "This belongs to another user."
             });
+            otherGuestComplaintId = otherGuestComplaint._id.toString();
             await Complaint.findByIdAndUpdate(complaintId, {
                 adminNote: "Private internal note",
                 handledBy: admin._id,
@@ -103,13 +210,22 @@ test("Complaint route integration tests", async (t) => {
 
             const response = await guestAgent.get("/complaints/mine");
             assert.equal(response.status, 200);
-            assert.equal(response.body.count, 1);
-            assert.equal(response.body.complaints[0].complainant._id, undefined);
-            assert.equal(response.body.complaints[0]._id, complaintId);
-            assert.equal(Object.hasOwn(response.body.complaints[0], "adminNote"), false);
-            assert.equal(Object.hasOwn(response.body.complaints[0], "handledBy"), false);
-            assert.equal(Object.hasOwn(response.body.complaints[0], "handledAt"), false);
-            assert.equal(Object.hasOwn(response.body.complaints[0], "reopenHistory"), false);
+
+            const ownComplaintIds = await Complaint.find({ complainant: guest._id }).distinct("_id");
+            const ownComplaintIdStrings = ownComplaintIds.map(id => id.toString());
+            const responseIds = response.body.complaints.map(item => item._id);
+
+            assert.equal(response.body.count, ownComplaintIds.length);
+            assert.ok(responseIds.includes(complaintId));
+            assert.ok(responseIds.every(id => ownComplaintIdStrings.includes(id)));
+            assert.ok(!responseIds.includes(otherGuestComplaintId));
+
+            for (const item of response.body.complaints) {
+                assert.equal(Object.hasOwn(item, "adminNote"), false);
+                assert.equal(Object.hasOwn(item, "handledBy"), false);
+                assert.equal(Object.hasOwn(item, "handledAt"), false);
+                assert.equal(Object.hasOwn(item, "reopenHistory"), false);
+            }
         });
 
         await t.test("blocks non-admin access to complaint queue", async () => {
