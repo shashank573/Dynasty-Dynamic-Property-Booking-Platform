@@ -206,7 +206,6 @@ Remaining:
 ### 5.2 Listings and Reviews
 **Status: Core CRUD and ownership controls implemented; covered by tests.**
 
-
 Implemented:
 - Listing index/show/create/edit/update/delete routes.
 - Joi validation for listing inputs.
