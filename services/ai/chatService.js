@@ -2,7 +2,7 @@ const OpenAI = require("openai");
 const { chatTools } = require("./chatTools.js");
 const { executeChatTool } = require("./chatToolExecutor.js");
 
-const DEFAULT_MODEL = "gpt-5.5";
+const DEFAULT_MODEL = "openrouter/free";
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_TOOL_ROUNDS = 3;
 const MAX_TOOL_CALLS = 6;
@@ -10,7 +10,7 @@ const MAX_TOOL_CALLS = 6;
 let openAIClient;
 
 function getOpenAIClient() {
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.OPENROUTER_API_KEY) {
         const error = new Error("AI service is not configured.");
         error.code = "AI_NOT_CONFIGURED";
         throw error;
@@ -18,8 +18,12 @@ function getOpenAIClient() {
 
     if (!openAIClient) {
         openAIClient = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY,
-            timeout: 20000,
+            apiKey: process.env.OPENROUTER_API_KEY,
+            baseURL: "https://openrouter.ai/api/v1",
+            defaultHeaders: {
+                "X-Title": "DynaStay"
+            },
+            timeout: 30000,
             maxRetries: 1
         });
     }
@@ -58,7 +62,7 @@ async function generateChatReply(message, options = {}) {
     ].join(" ");
 
     let response = await client.responses.create({
-        model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
+        model: process.env.OPENROUTER_MODEL || DEFAULT_MODEL,
         store: false,
         instructions,
         input,
