@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { generateChatReply } = require("../services/ai/chatService");
 
-test("OpenAI Responses API tool loop executes a tool and returns the follow-up answer", async () => {
+test("OpenRouter Responses API tool loop executes a tool and returns the follow-up answer", async () => {
     const requests = [];
     const client = {
         responses: {
