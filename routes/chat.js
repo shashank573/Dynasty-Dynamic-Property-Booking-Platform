@@ -1,6 +1,7 @@
 const express = require("express");
 const User = require("../models/user.js");
 const { postChatMessage } = require("../controllers/chatController.js");
+const { chatRateLimiter } = require("../middleware/chatRateLimiter.js");
 const wrapAsync = require("../utils/wrapAsync.js");
 
 const router = express.Router();
@@ -26,6 +27,6 @@ async function requireAuthenticatedUser(req, res, next) {
     return next();
 }
 
-router.post("/", requireAuthenticatedUser, wrapAsync(postChatMessage));
+router.post("/", requireAuthenticatedUser, chatRateLimiter, wrapAsync(postChatMessage));
 
 module.exports = router;
