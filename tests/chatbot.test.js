@@ -125,7 +125,7 @@ test("AI chat API authentication, validation, and rate limiting", async (t) => {
         });
     } finally {
         if (previousApiKey === undefined) {
-            delete process.env.OPENAI_API_KEY;
+            delete process.env.OPENROUTER_API_KEY;
         } else {
             process.env.OPENROUTER_API_KEY = previousApiKey;
         }
