@@ -10,6 +10,8 @@ const Booking = require("../models/booking.js");
 const Parking = require("../models/parking.js");
 const ParkingReservation = require("../models/parkingReservation.js");
 const { isLoggedIn, isGuest } = require("../middleware/auth.js");
+const { checkUnitAvailability } = require("../services/availability/propertyAvailabilityService.js");
+const { isParkingSlotAvailable } = require("../services/availability/parkingAvailabilityService.js");
 
 function validateBooking(req, res, next) {
     const { error } = bookingSchema.validate(req.body);
@@ -73,15 +75,17 @@ router.post("/", isLoggedIn, isGuest, validateBooking, wrapAsync(async (req, res
             );
             if (!unitWrite.matchedCount) throw new ExpressError(404, "Unit not found.");
 
-            const unit = await Unit.findById(unitId).session(session);
-            if (!unit) throw new ExpressError(404, "Unit not found.");
-            if (!unit.isAvailable) throw new ExpressError(409, "This unit is not available for booking.");
-
-            const conflict = await Booking.findOne({
-                unit: unitId, status: { $in: ["Pending", "Confirmed"] },
-                checkIn: { $lt: checkOutDate }, checkOut: { $gt: checkInDate }
-            }).session(session);
-            if (conflict) throw new ExpressError(409, "This unit is already booked for the selected dates.");
+            const availability = await checkUnitAvailability({
+                unitId, start: checkInDate, end: checkOutDate, session
+            });
+            if (!availability.unit) throw new ExpressError(404, "Unit not found.");
+            if (availability.reason === "UNIT_DISABLED") {
+                throw new ExpressError(409, "This unit is not available for booking.");
+            }
+            if (!availability.available) {
+                throw new ExpressError(409, "This unit is already booked for the selected dates.");
+            }
+            const unit = availability.unit;
 
             // Parking is optional. "with" means the guest already explicitly accepted parking;
             // no choice + no slot returns a choice prompt without committing a property booking.
@@ -100,11 +104,10 @@ router.post("/", isLoggedIn, isGuest, validateBooking, wrapAsync(async (req, res
                     );
                     if (!slotWrite.matchedCount) continue;
 
-                    const parkingConflict = await ParkingReservation.findOne({
-                        parking: slot._id, status: { $in: ["Pending", "Confirmed"] },
-                        startAt: { $lt: checkOutDate }, endAt: { $gt: checkInDate }
-                    }).session(session);
-                    if (!parkingConflict) {
+                    const slotAvailable = await isParkingSlotAvailable({
+                        parkingId: slot._id, start: checkInDate, end: checkOutDate, session
+                    });
+                    if (slotAvailable) {
                         assignedParking = slot;
                         break;
                     }
