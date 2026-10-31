@@ -4,17 +4,17 @@ const { findAvailableParkingSlots } = require("../availability/parkingAvailabili
 
 const DEFAULT_TIME_ZONE = "Asia/Kolkata";
 const INDIA_OFFSET_MINUTES = 330;
-const ISO_DATE_PATTERN = /^(\\d{4})-(\\d{2})-(\\d{2})$/;
-const TIME_PATTERN = /^(?:[01]\\d|2[0-3]):[0-5]\\d$/;
+const ISO_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+const TIME_PATTERN = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+
+function escapeRegex(value) {
+    return value.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+}
 
 function parseCalendarDate(value) {
-    if (typeof value !== "string") {
-        throw new TypeError("date must be a YYYY-MM-DD calendar date.");
-    }
+    if (typeof value !== "string") throw new TypeError("date must be a YYYY-MM-DD calendar date.");
     const match = ISO_DATE_PATTERN.exec(value);
-    if (!match) {
-        throw new TypeError("date must use YYYY-MM-DD format.");
-    }
+    if (!match) throw new TypeError("date must use YYYY-MM-DD format.");
     const year = Number(match[1]);
     const month = Number(match[2]);
     const day = Number(match[3]);
@@ -27,59 +27,23 @@ function parseCalendarDate(value) {
 }
 
 function localIndiaDateTimeToUtc(dateParts, time) {
-    if (!TIME_PATTERN.test(time)) {
-        throw new TypeError("Times must use 24-hour HH:mm format.");
-    }
+    if (!TIME_PATTERN.test(time)) throw new TypeError("Times must use 24-hour HH:mm format.");
     const [hour, minute] = time.split(":").map(Number);
-    return new Date(Date.UTC(
-        dateParts.year,
-        dateParts.month - 1,
-        dateParts.day,
-        hour,
-        minute
-    ) - INDIA_OFFSET_MINUTES * 60 * 1000);
+    return new Date(Date.UTC(dateParts.year, dateParts.month - 1, dateParts.day, hour, minute)
+        - INDIA_OFFSET_MINUTES * 60 * 1000);
 }
 
 function nextCalendarDate(dateParts) {
     const next = new Date(Date.UTC(dateParts.year, dateParts.month - 1, dateParts.day + 1));
-    return {
-        year: next.getUTCFullYear(),
-        month: next.getUTCMonth() + 1,
-        day: next.getUTCDate()
-    };
+    return { year: next.getUTCFullYear(), month: next.getUTCMonth() + 1, day: next.getUTCDate() };
 }
 
-function normalizeListingName(value) {
-    if (typeof value !== "string" || !value.trim()) {
-        throw new TypeError("Please provide the property name.");
-    }
-    return value.trim();
-}
-
-/**
- * Resolve a property by its exact title and check its parking for either
- * the full local calendar day or a specific same-day hourly interval.
- * DynaStay currently uses India Standard Time for these user-entered dates.
- */
-async function searchParkingAvailability({
-    listingName,
-    date,
-    startTime = null,
-    endTime = null
-} = {}) {
+async function searchParkingAvailability({ listingName, date, startTime = null, endTime = null } = {}) {
     if (typeof listingName !== "string" || !listingName.trim()) {
-        return {
-            success: false,
-            needsClarification: true,
-            clarification: "Which DynaStay property should I check parking for?"
-        };
+        return { success: false, needsClarification: true, clarification: "Which DynaStay property should I check parking for?" };
     }
     if (typeof date !== "string" || !date.trim()) {
-        return {
-            success: false,
-            needsClarification: true,
-            clarification: "What date should I check parking for?"
-        };
+        return { success: false, needsClarification: true, clarification: "What date should I check parking for?" };
     }
     if ((startTime === null) !== (endTime === null)) {
         return {
@@ -89,10 +53,10 @@ async function searchParkingAvailability({
         };
     }
 
-    const normalizedName = normalizeListingName(listingName);
+    const normalizedName = listingName.trim();
     const dateParts = parseCalendarDate(date);
     const matches = await Listing.find({
-        title: { $regex: "^" + normalizedName.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&") + "$", $options: "i" }
+        title: { $regex: "^" + escapeRegex(normalizedName) + "$", $options: "i" }
     }).select("_id title location country").limit(2).lean();
 
     if (matches.length === 0) {
@@ -107,11 +71,7 @@ async function searchParkingAvailability({
             success: false,
             needsClarification: true,
             clarification: "I found more than one property with that name. Which location do you mean?",
-            candidates: matches.map(item => ({
-                title: item.title,
-                location: item.location || "",
-                country: item.country || ""
-            }))
+            candidates: matches.map(item => ({ title: item.title, location: item.location || "", country: item.country || "" }))
         };
     }
 
@@ -136,12 +96,7 @@ async function searchParkingAvailability({
     }
 
     const listing = matches[0];
-    const slots = await findAvailableParkingSlots({
-        listingId: listing._id,
-        start,
-        end
-    });
-
+    const slots = await findAvailableParkingSlots({ listingId: listing._id, start, end });
     return {
         success: true,
         listing: {
@@ -164,11 +119,9 @@ async function searchParkingAvailability({
     };
 }
 
-// Retain the lower-level ID-based helper for existing internal callers/tests.
+// Retained for lower-level internal callers that already have a listing ID and UTC interval.
 async function searchParkingSpaces({ listingId, startAt, endAt } = {}) {
-    if (!mongoose.isValidObjectId(listingId)) {
-        throw new TypeError("A valid listingId is required.");
-    }
+    if (!mongoose.isValidObjectId(listingId)) throw new TypeError("A valid listingId is required.");
     const start = new Date(startAt);
     const end = new Date(endAt);
     if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start) {
@@ -182,27 +135,11 @@ async function searchParkingSpaces({ listingId, startAt, endAt } = {}) {
     }
     const slots = await findAvailableParkingSlots({ listingId, start, end });
     return {
-        listing: {
-            id: String(listing._id),
-            title: listing.title,
-            location: listing.location || "",
-            country: listing.country || ""
-        },
+        listing: { id: String(listing._id), title: listing.title, location: listing.location || "", country: listing.country || "" },
         startAt: start.toISOString(),
         endAt: end.toISOString(),
-        slots: slots.map(slot => ({
-            id: String(slot._id),
-            slotNumber: slot.slotNumber,
-            pricePerHour: slot.pricePerHour,
-            pricePerDay: slot.pricePerDay
-        }))
+        slots: slots.map(slot => ({ id: String(slot._id), slotNumber: slot.slotNumber, pricePerHour: slot.pricePerHour, pricePerDay: slot.pricePerDay }))
     };
 }
 
-module.exports = {
-    searchParkingAvailability,
-    searchParkingSpaces,
-    parseCalendarDate,
-    localIndiaDateTimeToUtc,
-    DEFAULT_TIME_ZONE
-};
+module.exports = { searchParkingAvailability, searchParkingSpaces, parseCalendarDate, localIndiaDateTimeToUtc, DEFAULT_TIME_ZONE };
