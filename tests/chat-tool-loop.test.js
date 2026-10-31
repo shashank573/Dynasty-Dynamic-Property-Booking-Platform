@@ -44,7 +44,7 @@ test("OpenRouter Responses API tool loop executes a tool and returns the follow-
     });
 });
 
-test("OpenAI tool loop rejects invalid user input before calling the provider", async () => {
+test("OpenRouter tool loop rejects invalid user input before calling the provider", async () => {
     let called = false;
     const client = {
         responses: {
