@@ -7,7 +7,7 @@ const Unit = require("../models/unit");
 const Parking = require("../models/parking");
 const ParkingReservation = require("../models/parkingReservation");
 const { searchProperties } = require("../services/ai/propertySearchService");
-const { searchParkingSpaces } = require("../services/ai/parkingSearchService");
+const { searchParkingSpaces, searchParkingAvailability } = require("../services/ai/parkingSearchService");
 const { executeChatTool, parseAndValidateArguments } = require("../services/ai/chatToolExecutor");
 const { chatTools } = require("../services/ai/chatTools");
 const { connectToTestDB, clearTestDB, closeTestDB } = require("./db-setup");
@@ -167,6 +167,116 @@ test("DynaStay chatbot property and parking search tools", async (t) => {
             assert.equal(Object.hasOwn(result.slots[0], "bookingVersion"), false);
         });
 
+        await t.test("date-only parking search checks the full calendar day in India time", async () => {
+            const result = await searchParkingAvailability({
+                listingName: "Mountain View Stay",
+                date: "2026-11-10",
+                startTime: null,
+                endTime: null
+            });
+            assert.equal(result.success, true);
+            assert.equal(result.billingUnit, "day");
+            assert.equal(result.timeZone, "Asia/Kolkata");
+            assert.equal(result.startAt, "2026-11-09T18:30:00.000Z");
+            assert.equal(result.endAt, "2026-11-10T18:30:00.000Z");
+            assert.deepEqual(result.slots.map(slot => slot.slotNumber), ["P-02"]);
+        });
+
+        await t.test("hourly parking search checks only the requested local time interval", async () => {
+            const result = await searchParkingAvailability({
+                listingName: "Mountain View Stay",
+                date: "2026-11-10",
+                startTime: "15:30",
+                endTime: "17:30"
+            });
+            assert.equal(result.success, true);
+            assert.equal(result.billingUnit, "hour");
+            assert.equal(result.startAt, "2026-11-10T10:00:00.000Z");
+            assert.equal(result.endAt, "2026-11-10T12:00:00.000Z");
+            assert.deepEqual(result.slots.map(slot => slot.slotNumber), ["P-02"]);
+        });
+
+        await t.test("parking search asks for clarification when required details are unclear", async () => {
+            const missingProperty = await searchParkingAvailability({
+                listingName: null,
+                date: "2026-11-10",
+                startTime: null,
+                endTime: null
+            });
+            assert.equal(missingProperty.needsClarification, true);
+            assert.match(missingProperty.clarification, /property/i);
+
+            const missingDate = await searchParkingAvailability({
+                listingName: "Mountain View Stay",
+                date: null,
+                startTime: null,
+                endTime: null
+            });
+            assert.equal(missingDate.needsClarification, true);
+            assert.match(missingDate.clarification, /date/i);
+
+            const oneTimeOnly = await searchParkingAvailability({
+                listingName: "Mountain View Stay",
+                date: "2026-11-10",
+                startTime: "10:00",
+                endTime: null
+            });
+            assert.equal(oneTimeOnly.needsClarification, true);
+            assert.match(oneTimeOnly.clarification, /both/i);
+        });
+
+        await t.test("parking search rejects invalid dates and time intervals", async () => {
+            await assert.rejects(
+                searchParkingAvailability({
+                    listingName: "Mountain View Stay",
+                    date: "2026-02-30",
+                    startTime: null,
+                    endTime: null
+                }),
+                TypeError
+            );
+            await assert.rejects(
+                searchParkingAvailability({
+                    listingName: "Mountain View Stay",
+                    date: "2026-11-10",
+                    startTime: "25:00",
+                    endTime: "26:00"
+                }),
+                TypeError
+            );
+            const reversed = await searchParkingAvailability({
+                listingName: "Mountain View Stay",
+                date: "2026-11-10",
+                startTime: "17:00",
+                endTime: "09:00"
+            });
+            assert.equal(reversed.needsClarification, true);
+        });
+
+        await t.test("parking search matches exact property titles containing regex characters safely", async () => {
+            const demoListing = await Listing.create({
+                title: "[DEMO] Cedar Courtyard Homestay",
+                location: "Dehradun",
+                country: "India",
+                owner: host._id
+            });
+            await Parking.create({
+                listing: demoListing._id,
+                slotNumber: "D-01",
+                pricePerHour: 30,
+                pricePerDay: 200
+            });
+            const result = await searchParkingAvailability({
+                listingName: "[DEMO] Cedar Courtyard Homestay",
+                date: "2027-11-01",
+                startTime: null,
+                endTime: null
+            });
+            assert.equal(result.success, true);
+            assert.equal(result.listing.id, String(demoListing._id));
+            assert.deepEqual(result.slots.map(slot => slot.slotNumber), ["D-01"]);
+        });
+
         await t.test("parking search validates IDs, ranges and listing existence", async () => {
             await assert.rejects(
                 searchParkingSpaces({ listingId: "invalid", startAt, endAt }),
@@ -234,11 +344,21 @@ test("DynaStay chatbot property and parking search tools", async (t) => {
             }))).success, false);
             assert.throws(
                 () => parseAndValidateArguments("searchParkingSpaces", {
-                    listingId: String(listing._id),
-                    startAt
+                    listingName: "Mountain View Stay",
+                    date: "2026-11-10",
+                    startTime: "10:00"
                 }),
                 TypeError
             );
+            const parkingArgs = {
+                listingName: "Mountain View Stay",
+                date: "2026-11-10",
+                startTime: null,
+                endTime: null
+            };
+            const parkingResult = await executeChatTool("searchParkingSpaces", JSON.stringify(parkingArgs));
+            assert.equal(parkingResult.success, true);
+            assert.equal(parkingResult.billingUnit, "day");
         });
 
         await t.test("OpenAI definitions expose only the two approved strict search tools", async () => {
