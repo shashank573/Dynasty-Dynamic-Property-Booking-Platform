@@ -21,16 +21,17 @@ const chatTools = [
     {
         type: "function",
         name: "searchParkingSpaces",
-        description: "Find active, currently unoccupied parking slots for a DynaStay listing and time interval. This is read-only and does not reserve a slot.",
+        description: "Check parking availability for a DynaStay property by its exact displayed property name and date. For a full calendar day, set both times to null. For hourly availability, provide both 24-hour startTime and endTime. The backend uses India Standard Time (Asia/Kolkata). This is read-only and never reserves parking.",
         strict: true,
         parameters: {
             type: "object",
             properties: {
-                listingId: { type: "string", description: "MongoDB ObjectId of the listing." },
-                startAt: { type: "string", description: "Reservation start as an ISO 8601 date-time with timezone." },
-                endAt: { type: "string", description: "Reservation end as an ISO 8601 date-time with timezone." }
+                listingName: { type: ["string", "null"], description: "Exact property title shown on DynaStay, or null if not provided." },
+                date: { type: ["string", "null"], description: "Date in YYYY-MM-DD format. Interpret DD/MM/YYYY user input as day/month/year." },
+                startTime: { type: ["string", "null"], description: "Optional local start time in 24-hour HH:mm format. Null means full-day search when endTime is also null." },
+                endTime: { type: ["string", "null"], description: "Optional local end time in 24-hour HH:mm format. Null means full-day search when startTime is also null." }
             },
-            required: ["listingId", "startAt", "endAt"],
+            required: ["listingName", "date", "startTime", "endTime"],
             additionalProperties: false
         }
     }
