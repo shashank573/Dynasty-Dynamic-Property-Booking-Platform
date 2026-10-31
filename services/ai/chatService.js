@@ -93,7 +93,8 @@ async function generateChatReply(message, options = {}) {
 
         input.push(...toolOutputs);
         response = await client.responses.create({
-            model: process.env.OPENROUTER_MODEL || DEFAULT_MODEL,
+            // Keep every round on the free router; never accept a paid model override.
+            model: DEFAULT_MODEL,
             store: false,
             instructions,
             input,
