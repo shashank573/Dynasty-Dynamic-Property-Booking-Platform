@@ -7,17 +7,17 @@ const MAX_MESSAGE_LENGTH = 2000;
 const MAX_TOOL_ROUNDS = 3;
 const MAX_TOOL_CALLS = 6;
 
-let openAIClient;
+let openRouterClient;
 
-function getOpenAIClient() {
+function getOpenRouterClient() {
     if (!process.env.OPENROUTER_API_KEY) {
         const error = new Error("AI service is not configured.");
         error.code = "AI_NOT_CONFIGURED";
         throw error;
     }
 
-    if (!openAIClient) {
-        openAIClient = new OpenAI({
+    if (!openRouterClient) {
+        openRouterClient = new OpenAI({
             apiKey: process.env.OPENROUTER_API_KEY,
             baseURL: "https://openrouter.ai/api/v1",
             defaultHeaders: {
@@ -28,7 +28,7 @@ function getOpenAIClient() {
         });
     }
 
-    return openAIClient;
+    return openRouterClient;
 }
 
 function getFunctionCalls(response) {
@@ -47,7 +47,7 @@ async function generateChatReply(message, options = {}) {
         throw new RangeError("Message length is invalid.");
     }
 
-    const client = options.client || getOpenAIClient();
+    const client = options.client || getOpenRouterClient();
     const input = [{ role: "user", content: normalizedMessage }];
     const instructions = [
         "You are DynaStay's helpful property-platform assistant.",
@@ -93,7 +93,7 @@ async function generateChatReply(message, options = {}) {
 
         input.push(...toolOutputs);
         response = await client.responses.create({
-            model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
+            model: process.env.OPENROUTER_MODEL || DEFAULT_MODEL,
             store: false,
             instructions,
             input,
