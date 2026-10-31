@@ -31,7 +31,7 @@ test("OpenRouter Responses API tool loop executes a tool and returns the follow-
     assert.equal(reply, "I could not run that unsupported search.");
     assert.equal(requests.length, 2);
     assert.equal(requests[0].store, false);
-    assert.equal(requests[0].model, process.env.OPENROUTER_MODEL || "openrouter/free");
+    assert.equal(requests[0].model, "openrouter/free");
     assert.equal(requests[0].tools.length, 2);
 
     const followUpInput = requests[1].input;
