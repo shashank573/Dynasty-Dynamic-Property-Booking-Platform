@@ -148,6 +148,14 @@ test("DynaStay chatbot property and parking search tools", async (t) => {
                 TypeError
             );
             await assert.rejects(
+                searchParkingSpaces({
+                    listingId: String(listing._id),
+                    startAt: "2026-11-10T10:00:00",
+                    endAt: "2026-11-10T12:00:00"
+                }),
+                TypeError
+            );
+            await assert.rejects(
                 searchParkingSpaces({ listingId: new mongoose.Types.ObjectId().toString(), startAt, endAt }),
                 error => error.code === "LISTING_NOT_FOUND"
             );
