@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "test": "SESSION_SECRET=dynastay-test-only-session-secret NODE_ENV=test node --test"
+    "test": "SESSION_SECRET=dynastay-test-only-session-secret NODE_ENV=test node --test",
+    "seed:demo": "ALLOW_DEMO_SEED=true node scripts/seed-demo-data.js"
   },
   "repository": {
     "type": "git",
