@@ -1,9 +1,9 @@
-const mongoose = require("mongoose");
 const Listing = require("../../models/listing.js");
 const Unit = require("../../models/unit.js");
 
 const DEFAULT_LIMIT = 5;
 const MAX_LIMIT = 10;
+const MAX_CANDIDATE_LISTINGS = 100;
 const MAX_UNITS_PER_LISTING = 5;
 
 function escapeRegex(value) {
@@ -27,9 +27,9 @@ function normalizeNumber(value, fieldName) {
 }
 
 /**
- * Search real listings and their currently enabled units.
+ * Search real listings and their currently enabled bookable units.
  * Price and capacity filters apply to Unit fields, never Listing.price.
- * Results are informational and do not guarantee booking availability.
+ * Results are informational and do not guarantee date-specific availability.
  */
 async function searchProperties({
     location,
@@ -60,10 +60,12 @@ async function searchProperties({
     if (normalizedLocation) listingFilter.location = new RegExp(escapeRegex(normalizedLocation), "i");
     if (normalizedCountry) listingFilter.country = new RegExp(escapeRegex(normalizedCountry), "i");
 
+    // Fetch a bounded candidate set, then apply the requested result limit only
+    // after finding listings that actually have matching enabled units.
     const listings = await Listing.find(listingFilter)
         .select("title description image location country")
         .sort({ title: 1 })
-        .limit(limit)
+        .limit(MAX_CANDIDATE_LISTINGS)
         .lean();
 
     if (!listings.length) return [];
@@ -104,6 +106,7 @@ async function searchProperties({
 
     return listings
         .filter(listing => unitsByListing.has(String(listing._id)))
+        .slice(0, limit)
         .map(listing => ({
             id: String(listing._id),
             title: listing.title,
@@ -119,5 +122,6 @@ module.exports = {
     searchProperties,
     DEFAULT_LIMIT,
     MAX_LIMIT,
+    MAX_CANDIDATE_LISTINGS,
     MAX_UNITS_PER_LISTING
 };
