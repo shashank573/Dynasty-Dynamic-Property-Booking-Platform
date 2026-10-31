@@ -3,8 +3,10 @@ const Listing = require("../../models/listing.js");
 const { findAvailableParkingSlots } = require("../availability/parkingAvailabilityService.js");
 
 function normalizeRange(startAt, endAt) {
-    if (typeof startAt !== "string" || typeof endAt !== "string") {
-        throw new TypeError("startAt and endAt must be date-time strings.");
+    const hasTimezone = value => typeof value === "string" &&
+        /(?:Z|[+-]\\d{2}:\\d{2})$/i.test(value);
+    if (!hasTimezone(startAt) || !hasTimezone(endAt)) {
+        throw new TypeError("startAt and endAt must be ISO 8601 date-time strings with a timezone.");
     }
     const start = new Date(startAt);
     const end = new Date(endAt);
