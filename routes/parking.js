@@ -5,6 +5,7 @@ const Parking = require("../models/parking");
 const ParkingReservation = require("../models/parkingReservation");
 const Listing = require("../models/listing");
 const { isLoggedIn, isOwner, isGuest } = require("../middleware/auth");
+const { findAvailableParkingSlots } = require("../services/availability/parkingAvailabilityService.js");
 
 const activeStatuses = ["Pending", "Confirmed"];
 
@@ -56,15 +57,11 @@ router.get("/availability", isLoggedIn, isGuest, async (req, res, next) => {
         if (!mongoose.isValidObjectId(req.query.listingId) || !range) {
             return res.status(400).json({ error: "Valid listingId, startAt and endAt are required." });
         }
-        const slots = await Parking.find({ listing: req.query.listingId, isActive: true }).lean();
-        const available = [];
-        for (const slot of slots) {
-            const conflict = await ParkingReservation.exists({
-                parking: slot._id, status: { $in: activeStatuses },
-                startAt: { $lt: range.end }, endAt: { $gt: range.start }
-            });
-            if (!conflict) available.push(slot);
-        }
+        const available = await findAvailableParkingSlots({
+            listingId: req.query.listingId,
+            start: range.start,
+            end: range.end
+        });
         return res.status(200).json({ slots: available });
     } catch (error) { next(error); }
 });
