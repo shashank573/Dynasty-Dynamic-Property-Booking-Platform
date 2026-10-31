@@ -62,7 +62,7 @@ async function generateChatReply(message, options = {}) {
     ].join(" ");
 
     let response = await client.responses.create({
-        model: process.env.OPENROUTER_MODEL || DEFAULT_MODEL,
+        model: DEFAULT_MODEL,
         store: false,
         instructions,
         input,
