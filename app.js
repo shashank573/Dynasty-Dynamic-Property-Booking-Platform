@@ -12,6 +12,7 @@ const ejsMate = require("ejs-mate");
 const ExpressError = require("./utils/ExpressError.js");
 
 const apiRoutes = require("./routes/api.js");
+const chatRoutes = require("./routes/chat.js");
 
 const listings = require("./routes/listing.js");
 const reviews = require("./routes/review.js");
@@ -79,6 +80,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api", apiRoutes);
+app.use("/api/chat", chatRoutes);
 
 // API health check
 app.get("/api/health", (req, res) => {
