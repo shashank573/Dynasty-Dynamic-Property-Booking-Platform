@@ -122,6 +122,35 @@ test("DynaStay chatbot property and parking search tools", async (t) => {
             assert.deepEqual(results, []);
         });
 
+
+        await t.test("property search finds matches beyond the former 100-listing candidate boundary", async () => {
+            const boundaryListings = Array.from({ length: 101 }, (_, index) => ({
+                title: "Boundary " + String(index).padStart(3, "0"),
+                location: "BoundaryTown",
+                country: "India",
+                owner: host._id
+            }));
+            const insertedListings = await Listing.insertMany(boundaryListings);
+            const lastListing = insertedListings[100];
+            await Unit.create({
+                listing: lastListing._id,
+                name: "Late Matching Unit",
+                capacity: 3,
+                pricePerNight: 1800
+            });
+
+            const results = await searchProperties({
+                location: "BoundaryTown",
+                minPrice: 1500,
+                maxPrice: 2000,
+                minCapacity: 2,
+                limit: 1
+            });
+            assert.equal(results.length, 1);
+            assert.equal(results[0].id, String(lastListing._id));
+            assert.equal(results[0].units[0].name, "Late Matching Unit");
+        });
+
         await t.test("property search validates price, capacity, limit and text filters", async () => {
             await assert.rejects(searchProperties({ minPrice: 3000, maxPrice: 1000 }), TypeError);
             await assert.rejects(searchProperties({ minCapacity: 2.5 }), TypeError);
@@ -152,6 +181,30 @@ test("DynaStay chatbot property and parking search tools", async (t) => {
                     listingId: String(listing._id),
                     startAt: "2026-11-10T10:00:00",
                     endAt: "2026-11-10T12:00:00"
+                }),
+                TypeError
+            );
+            await assert.rejects(
+                searchParkingSpaces({
+                    listingId: String(listing._id),
+                    startAt: "2026-02-30T10:00:00Z",
+                    endAt: "2026-03-01T10:00:00Z"
+                }),
+                TypeError
+            );
+            await assert.rejects(
+                searchParkingSpaces({
+                    listingId: String(listing._id),
+                    startAt: "2026-11-10T10:00:00+15:00",
+                    endAt: "2026-11-10T12:00:00+05:30"
+                }),
+                TypeError
+            );
+            await assert.rejects(
+                searchParkingSpaces({
+                    listingId: String(listing._id),
+                    startAt: "not-a-date+05:30",
+                    endAt: "2026-11-10T12:00:00Z"
                 }),
                 TypeError
             );
