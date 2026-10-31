@@ -10,7 +10,7 @@ const {
     closeTestDB
 } = require("./db-setup");
 
-test("AI chat API authentication, validation, and rate limiting", async (t) => {
+test("AI chat API authentication, validation, UI visibility, and rate limiting", async (t) => {
     await connectToTestDB();
 
     const previousApiKey = process.env.OPENROUTER_API_KEY;
@@ -26,6 +26,12 @@ test("AI chat API authentication, validation, and rate limiting", async (t) => {
 
             assert.equal(response.status, 401);
             assert.equal(response.body.success, false);
+        });
+
+        await t.test("does not render the chatbot for logged-out visitors", async () => {
+            const response = await request(app).get("/login");
+            assert.equal(response.status, 200);
+            assert.doesNotMatch(response.text, /dynastay-chatbot/);
         });
 
         const user = await User.create({
@@ -45,6 +51,14 @@ test("AI chat API authentication, validation, and rate limiting", async (t) => {
             });
 
         assert.equal(loginResponse.status, 302);
+
+        await t.test("renders the chatbot for authenticated users", async () => {
+            const response = await agent.get("/listings");
+            assert.equal(response.status, 200);
+            assert.match(response.text, /dynastay-chatbot/);
+            assert.match(response.text, /DynaStay Assistant/);
+            assert.match(response.text, /\/JS\/chatbot.js/);
+        });
 
         await t.test("rejects empty and oversized messages before calling the AI provider", async () => {
             const emptyResponse = await agent
