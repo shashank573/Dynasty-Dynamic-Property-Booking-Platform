@@ -13,8 +13,8 @@ const {
 test("AI chat API authentication, validation, and rate limiting", async (t) => {
     await connectToTestDB();
 
-    const previousApiKey = process.env.OPENAI_API_KEY;
-    delete process.env.OPENAI_API_KEY;
+    const previousApiKey = process.env.OPENROUTER_API_KEY;
+    delete process.env.OPENROUTER_API_KEY;
 
     try {
         await clearTestDB();
@@ -60,7 +60,7 @@ test("AI chat API authentication, validation, and rate limiting", async (t) => {
             assert.equal(oversizedResponse.status, 400);
         });
 
-        await t.test("returns a safe 503 response when the API key is not configured", async () => {
+        await t.test("returns a safe 503 response when the OpenRouter key is not configured", async () => {
             const response = await agent
                 .post("/api/chat")
                 .send({ message: "Hello DynaStay" });
@@ -127,7 +127,7 @@ test("AI chat API authentication, validation, and rate limiting", async (t) => {
         if (previousApiKey === undefined) {
             delete process.env.OPENAI_API_KEY;
         } else {
-            process.env.OPENAI_API_KEY = previousApiKey;
+            process.env.OPENROUTER_API_KEY = previousApiKey;
         }
         await closeTestDB();
     }
