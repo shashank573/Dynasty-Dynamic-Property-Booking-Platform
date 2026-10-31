@@ -33,7 +33,7 @@ function getFunctionCalls(response) {
         : [];
 }
 
-async function generateChatReply(message) {
+async function generateChatReply(message, options = {}) {
     if (typeof message !== "string") {
         throw new TypeError("Message must be a string.");
     }
@@ -43,7 +43,7 @@ async function generateChatReply(message) {
         throw new RangeError("Message length is invalid.");
     }
 
-    const client = getOpenAIClient();
+    const client = options.client || getOpenAIClient();
     const input = [{ role: "user", content: normalizedMessage }];
     const instructions = [
         "You are DynaStay's helpful property-platform assistant.",
@@ -67,12 +67,12 @@ async function generateChatReply(message) {
     });
 
     let totalToolCalls = 0;
-    for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
+    for (let round = 0; round <= MAX_TOOL_ROUNDS; round += 1) {
         const functionCalls = getFunctionCalls(response);
         if (!functionCalls.length) break;
 
         totalToolCalls += functionCalls.length;
-        if (totalToolCalls > MAX_TOOL_CALLS || round === MAX_TOOL_ROUNDS - 1) {
+        if (totalToolCalls > MAX_TOOL_CALLS || round === MAX_TOOL_ROUNDS) {
             return "I couldn't complete that search within the allowed limits. Please narrow your request and try again.";
         }
 
