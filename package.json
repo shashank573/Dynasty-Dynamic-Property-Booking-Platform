@@ -31,7 +31,8 @@
     "express-session": "^1.19.0",
     "joi": "^18.2.9",
     "method-override": "^3.0.0",
-    "mongoose": "^9.9.5"
+    "mongoose": "^9.9.5",
+    "openai": "^7.17.0"
   },
   "devDependencies": {
     "mongodb-memory-server": "^11.3.0",

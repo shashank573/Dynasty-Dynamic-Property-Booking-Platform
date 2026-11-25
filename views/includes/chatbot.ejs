@@ -1,0 +1,38 @@
+<% if (currentUser) { %>
+  <div class="dynastay-chatbot" data-chat-endpoint="/api/chat">
+    <section class="dynastay-chat-panel" id="dynastay-chat-panel" aria-label="DynaStay assistant" aria-hidden="true" hidden>
+      <header class="dynastay-chat-header">
+        <div class="dynastay-chat-brand">
+          <span class="dynastay-chat-avatar" aria-hidden="true"><i class="fa-solid fa-compass"></i></span>
+          <div>
+            <strong>DynaStay Assistant</strong>
+            <small>Property and parking help</small>
+          </div>
+        </div>
+        <button class="dynastay-chat-close" type="button" aria-label="Close chat">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </header>
+
+      <div class="dynastay-chat-messages" id="dynastay-chat-messages" role="log" aria-live="polite" aria-relevant="additions text">
+        <div class="dynastay-chat-message assistant">
+          <div class="dynastay-chat-bubble">Hi! I'm the DynaStay assistant. Ask me to find properties or check parking availability.</div>
+        </div>
+      </div>
+
+      <form class="dynastay-chat-form" id="dynastay-chat-form">
+        <label class="visually-hidden" for="dynastay-chat-input">Your message</label>
+        <textarea id="dynastay-chat-input" name="message" rows="1" maxlength="2000" placeholder="Ask about properties or parking..." required></textarea>
+        <button type="submit" aria-label="Send message">
+          <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+        </button>
+      </form>
+      <p class="dynastay-chat-disclaimer">AI responses can be inaccurate. Confirm details before booking.</p>
+    </section>
+
+    <button class="dynastay-chat-launcher" type="button" aria-label="Open DynaStay assistant" aria-controls="dynastay-chat-panel" aria-expanded="false">
+      <i class="fa-regular fa-comment-dots" aria-hidden="true"></i>
+      <span class="dynastay-chat-launcher-label">Chat with us</span>
+    </button>
+  </div>
+<% } %>
